@@ -1,0 +1,100 @@
+
+#include <LiquidCrystal_I2C.h>
+#include <ClickEncoder.h>
+#include <TimerOne.h>
+#include <EEPROM.h>
+
+#define enc_PinA 4          // Dreh-Enkoder "A" an Pin 4 vom Nano
+#define enc_PinB 5          // Dreh-Enkoder "B" an Pin 5 vom Nano
+#define enc_PinC 6          // Dreh-Enkoder "Click" an Pin 6 vom Nano
+#define enc_Step 2          // Dreh-Enkoder (Werte pro Dreh-Schritt / je nach Dreh-Enkoder anpassen)
+
+LiquidCrystal_I2C lcd(0x27, 16, 2); // LCD mit I2C-Backpack (I2C-Addresse, 16 Zeichen, 2 Zeilen)
+
+ClickEncoder *encoder;      // Dreh-Enkoder mit Klickbutton
+
+int encValue = 0;           // Wert, der mit dem Dreh-Enkoder geaendert wird
+int ValueStep = 1;          // Schrittweite fuer den Enkoder-Wert (wird durch Buttonklick auf einen der folgenden Werte geaendert)
+const int steps[4] = {1, 10, 100, 1000}; // die Werte fuer die Schrittweite
+int lastValue = 0;          // Variable zum speichern des letzten Wertes, damit die LCD-Anzeige nur bei einer Aenderung aktualisiert wird
+bool ValueChanged = false;  // Variable zum merken, ob eine Aenderung vorgenommen wurde (um den Wert nach Ablauf der writeTime ins EEPROM zu schreiben)
+uint32_t encTime = 0;       // Variable zum speichern der Millisekunden (wird bei jeder Aenderung auf millis() gesetzt)
+const int writeTime = 5000; // Zeit in Millisekunden, nach der ein geaenderter Wert ins EEPROM geschrieben wird
+const byte eeAddress = 0;   // Adresse im EEPROM fuer den Enkoder-Wert (fuer einen Integer Datentyp werden 2 Bytes geschrieben)
+
+
+void timerIsr() {                               // die Timer-Interrupt-Funktion
+  encoder->service();                           // fuer den Dreh-Enkoder
+}
+
+byte getDigits(long val) {                      // Funktion zum ermitteln, wie viele Dezimalstellen eine Zahl hat
+  byte digits = 0;                              // Anzahl der Dezimalstellen auf Null setzen
+  while (abs(val) >= pow(10, digits)) digits++; // in der Schleife die Anzahl der Dezimalstellen ermitteln
+  return digits + (val <= 0);                   // vor der Rueckgabe noch eine Stelle addieren, wenn die Zahl kleiner/gleich Null ist
+}
+
+void checkStep() {                              // Funktion zum aendern der Schrittweite
+  byte index = getDigits(ValueStep);            // Anzahl der Dezimalstellen des bisherigen Wertes holen (dient als Index fuer das Array)
+  if (index > 3) index = 0;                     // wenn groesser als 3, dann wieder den niedrigsten Wert zuweisen
+  ValueStep = steps[index];                     // ValueStep den Wert aus dem Array zuweisen
+}
+
+void setup() {
+  //Serial.begin(9600);
+  EEPROM.get(eeAddress, encValue);              // den Wert fuer encValue aus dem EEPROM lesen
+  encoder = new ClickEncoder(enc_PinA, enc_PinB, enc_PinC, enc_Step); // den Dreh-Enkoder initialisieren
+  Timer1.initialize(1000);                      // den Interrupt-Timer fuer den Dreh-Enkoder initialisieren
+  Timer1.attachInterrupt(timerIsr);             // und die Interrupt-Funktion festlegen
+  lcd.init();                                   // das LCD initialisieren
+  lcd.backlight();                              // die Hintergrundbeleuchtung des LCD einschalten
+  lcd.setCursor(0, 0);                          // den Cursor positionieren
+  lcd.print(F("Encoder     Step"));             // und den Text ausgeben
+  lcd.setCursor(16 - getDigits(ValueStep), 1);  // den Cursor fuer ValueStep positionieren
+  lcd.print(ValueStep);                         // und den Wert anzeigen
+}
+
+void loop() {
+  // wenn eine Aenderung vorgenommen wurde und die letzte Aenderung laenger als <writeTime> zurueckliegt, dann...
+  if (ValueChanged && (millis() - encTime >= writeTime)) {
+    EEPROM.put(eeAddress, encValue);                 // den Wert ins EEPROM schreiben
+    ValueChanged = false;                            // Aenderungs-Variable zuruecksetzen
+    lcd.setCursor(7, 1);                             // Cursor an die 8. Stelle in der zweiten Zeile setzen
+    lcd.print(" ");                                  // den Stern durch ein Leerzeichen ersetzen, als Zeichen fuer "Wert geschrieben"
+  }
+  encValue += encoder->getValue() * ValueStep;       // Enkoderwert auslesen, mit ValueStep multiplizieren und zum Enkoderwert addieren
+  if (encValue != lastValue) {                       // wenn der neue Wert vom letzten Wert abweicht, dann...
+    lastValue = encValue;                            // neuen Wert merken
+    lcd.setCursor(0, 1);                             // Cursor an den Anfang der zweiten Zeile setzen
+    lcd.print("      ");                             // und den alten Wert loeschen
+    lcd.setCursor(7 - getDigits(encValue), 1);       // Cursor setzen: Position 8 - Anzahl der Dezimalstellen (rechtsbuendig)
+    lcd.print(encValue);                             // den neuen Wert auf dem LCD ausgeben
+    encTime = millis();                              // den Wert von millis() merken
+    if (!ValueChanged) {                             // wenn der Stern noch nicht in der Anzeige zu sehen ist, dann...
+      lcd.setCursor(7, 1);                           // Cursor an die 8. Stelle in der zweiten Zeile setzen
+      lcd.print("*");                                // und einen Stern anzeigen, als Zeichen fuer "Wert geandert"
+      ValueChanged = true;                           // Aenderungs-Variable setzen
+    }
+  }
+
+  ClickEncoder::Button b = encoder->getButton();     // den Button-Status abfragen
+  if (b != ClickEncoder::Open) {
+    switch (b) {                                     // und entsprechend darauf reagieren
+      case ClickEncoder::Clicked:                    // Button wurde einmal angeklickt
+        checkStep();                                 // den Wert fuer ValueStep entsprechend anpassen
+        lcd.setCursor(12, 1);                        // Cursor positionieren
+        lcd.print("    ");                           // den vorherigen Wert loeschen
+        lcd.setCursor(16 - getDigits(ValueStep), 1); // Cursor setzen: Position 16 - Anzahl der Dezimalstellen (rechtsbuendig)
+        lcd.print(ValueStep);                        // den neuen Wert auf dem LCD ausgeben
+        break;
+      case ClickEncoder::DoubleClicked:              // Doppelklick auf den Button
+        // hier eigenen Code einfuegen
+        break;
+      case ClickEncoder::Held:                       // Button gedrueckt halten
+        // hier eigenen Code einfuegen
+        break;
+      case ClickEncoder::Released:                   // Button losgelassen (nach gedrueckt halten)
+        // hier eigenen Code einfuegen
+        break;
+    }
+  }
+}
