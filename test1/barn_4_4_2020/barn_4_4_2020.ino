@@ -219,33 +219,34 @@ void checkStep()                                // Funktion zum aendern der Schr
 // *********************************************************************
 // LCDML MENU/DISP
 // *********************************************************************
-LCDML_add         (0  , LCDML_0          , 1  , "Sensorwerte"        , NULL);                    // NULL = no menu function
-LCDML_add         (1  , LCDML_0_1        , 1  , "Temperatur Stall"   , mFunc_temp_barn);         // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (2  , LCDML_0_1        , 2  , "Licht Aussen/Innen" , mFunc_lux);               // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (3  , LCDML_0_1        , 3  , "Zurueck"            , mFunc_back);              // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (4  , LCDML_0          , 2  , "Datum/Uhrzeit"      , mFunc_timer_info);        // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (5  , LCDML_0          , 4  , "Einstellungen"      , NULL);                    // NULL = no menu function
-LCDML_add         (6  , LCDML_0_4        , 1  , "Datum/Uhrzeit"      , mFunc_timeSetup);         // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (7  , LCDML_0_4        , 2  , "Lichtsteuerung"     , NULL);                    // NULL = no menu function
-LCDML_add         (8  , LCDML_0_4        , 3  , "Torsteuerung"       , NULL);                    // NULL = no menu function
-LCDML_add         (9  , LCDML_0_4_3      , 1  , "Tor Auf Parameter"  , mFunc_doors);             // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (10 , LCDML_0_4_3      , 2  , "Tor Zu Hysterese"   , mFunc_Hystdoors);         // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (11 , LCDML_0_4_3      , 3  , "Zurueck"            , mFunc_back);              // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (12 , LCDML_0_4        , 4  , "Temperatur Offset"  , mFunc_tempOffset);        // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (13 , LCDML_0_4        , 5  , "Energiesparmodus"   , mFunc_screensaverSetup);  // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (14 , LCDML_0_4        , 6  , "Zurueck"            , mFunc_back);              // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (15 , LCDML_0_4_2      , 1  , "Zeiten"             , NULL);                    // NULL = no menu function
-LCDML_add         (16 , LCDML_0_4_2_1    , 1  , "Startzeit"          , mFunc_luxBegin);          // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (17 , LCDML_0_4_2_1    , 2  , "Tages- + Endzeit"   , mFunc_luxEnd);            // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (18 , LCDML_0_4_2_1    , 3  , "Zurueck"            , mFunc_back);              // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (19 , LCDML_0_4_2      , 2  , "Hysteresen"         , NULL);                    // NULL = no menu function
-LCDML_add         (20 , LCDML_0_4_2_2    , 1  , "Hysterese Ein"      , mFunc_HystON);            // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (21 , LCDML_0_4_2_2    , 2  , "Hysterese Aus"      , mFunc_HystOFF);           // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (22 , LCDML_0_4_2_2    , 3  , "Zurueck"            , mFunc_back);              // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (23 , LCDML_0_4_2      , 3  , "Regler"             , mFunc_luxPID);            // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (24 , LCDML_0_4_2      , 4  , "Zurueck"            , mFunc_back);              // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (25 , LCDML_0          , 5  , "Info"               , mFunc_info);              // this menu function can be found on "LCDML_display_menuFunction" tab
-LCDML_add         (26 , LCDML_0          , 6  , "Energiesparmodus"   , mFunc_screensaver);       // this menu function can be found on "LCDML_display_menuFunction" tab
+        // NULL = no menu function
+LCDML_add         (0  , LCDML_0          , 1  , "Sensorwerte"        , NULL);                    
+LCDML_add         (1  , LCDML_0_1        , 1  , "Temperatur Stall"   , mFunc_temp_barn);         // "temperature" tab
+LCDML_add         (2  , LCDML_0_1        , 2  , "Licht Aussen/Innen" , mFunc_lux);               // "light" tab
+LCDML_add         (3  , LCDML_0_1        , 3  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
+LCDML_add         (4  , LCDML_0          , 2  , "Datum/Uhrzeit"      , mFunc_timer_info);        // "RTCtimeSetup" tab
+LCDML_add         (5  , LCDML_0          , 4  , "Einstellungen"      , NULL);                    
+LCDML_add         (6  , LCDML_0_4        , 1  , "Datum/Uhrzeit"      , mFunc_timeSetup);         // "RTCtimeSetup" tab
+LCDML_add         (7  , LCDML_0_4        , 2  , "Lichtsteuerung"     , NULL);                    
+LCDML_add         (8  , LCDML_0_4        , 3  , "Torsteuerung"       , NULL);                    
+LCDML_add         (9  , LCDML_0_4_3      , 1  , "Tor Auf Parameter"  , mFunc_doors);             // "doors" tab
+LCDML_add         (10 , LCDML_0_4_3      , 2  , "Tor Zu Hysterese"   , mFunc_Hystdoors);         // "doors" tab
+LCDML_add         (11 , LCDML_0_4_3      , 3  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
+LCDML_add         (12 , LCDML_0_4        , 4  , "Temperatur Offset"  , mFunc_tempOffset);        // "temperature" tab
+LCDML_add         (13 , LCDML_0_4        , 5  , "Energiesparmodus"   , mFunc_screensaverSetup);  // "menuFunction" tab
+LCDML_add         (14 , LCDML_0_4        , 6  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
+LCDML_add         (15 , LCDML_0_4_2      , 1  , "Zeiten"             , NULL);                    
+LCDML_add         (16 , LCDML_0_4_2_1    , 1  , "Startzeit"          , mFunc_luxBegin);          // "light" tab
+LCDML_add         (17 , LCDML_0_4_2_1    , 2  , "Tages- + Endzeit"   , mFunc_luxEnd);            // "light" tab
+LCDML_add         (18 , LCDML_0_4_2_1    , 3  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
+LCDML_add         (19 , LCDML_0_4_2      , 2  , "Hysteresen"         , NULL);                    
+LCDML_add         (20 , LCDML_0_4_2_2    , 1  , "Hysterese Ein"      , mFunc_HystON);            // "light" tab
+LCDML_add         (21 , LCDML_0_4_2_2    , 2  , "Hysterese Aus"      , mFunc_HystOFF);           // "light" tab
+LCDML_add         (22 , LCDML_0_4_2_2    , 3  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
+LCDML_add         (23 , LCDML_0_4_2      , 3  , "Regler"             , mFunc_luxPID);            // "light" tab
+LCDML_add         (24 , LCDML_0_4_2      , 4  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
+LCDML_add         (25 , LCDML_0          , 5  , "Info"               , mFunc_info);              // "menuFunction" tab
+LCDML_add         (26 , LCDML_0          , 6  , "Energiesparmodus"   , mFunc_screensaver);       // "menuFunction" tab
 
 // menu element count - last element id
 // this value must be the same as the last menu element
@@ -261,7 +262,7 @@ void setup()
   Wire.begin(); // Initialize I2C bus
   lcd.init(); //LCD initialisieren
   lcd.backlight(); //LCD Licht EIN
-  
+
   // Lux Sensor * * * * *
   HelligkeitInnen.begin(ModeContinuous, ResolutionHigh); // Initialize sensor in continues mode, high 0.5 lx resolution
   HelligkeitAussen.begin(ModeContinuous, ResolutionHigh); // Initialize sensor in continues mode, high 0.5 lx resolution
@@ -342,38 +343,50 @@ void loop()
   dac.setVoltage((uint16_t(Output)*25), false);
   
 
-   //Zeitschaltuhr Tore
-   t = rtc.getTime();
-   unsigned long HOUR = (unsigned long)t.hour * 3600;
-   unsigned long MIN = (unsigned long)t.min * 60;
-   unsigned long SEC = (unsigned long)t.sec; 
-   unsigned long timeNow = HOUR + MIN + SEC; //aktuelle Tagesuhrzeit in Sekunden  
-   //Serial.println(timeNow);
+  //Zeitschaltuhr Tore
+  t = rtc.getTime();
+  unsigned long HOUR = (unsigned long)t.hour * 3600;
+  unsigned long MIN = (unsigned long)t.min * 60;
+  unsigned long SEC = (unsigned long)t.sec; 
+  unsigned long timeNow = HOUR + MIN + SEC; //aktuelle Tagesuhrzeit in Sekunden  
+  //Serial.println(timeNow);
   
-   unsigned long ON = 50;
-   unsigned long OFF = 65;
-   bool STATE;
+  unsigned long ON = 50;
+  unsigned long OFF = 65;
+  bool STATE;
 
   if (ON <= OFF) //an-aus am selben tag
   {
     if (timeNow >= ON && timeNow < OFF)
     {
-      if(STATE == LOW) {STATE = HIGH;} // SSR Relais EIN
+      if(STATE == LOW) 
+        {
+        STATE = HIGH; // SSR Relais EIN
+        } 
     }
     else
     {
-      if(STATE == HIGH) {STATE = LOW;} // SSR Relais AUS
+      if(STATE == HIGH) 
+      {
+      STATE = LOW; // SSR Relais AUS
+      } 
     }
   }
   else  //schaltzeit über mitternacht hinaus
   {
     if (timeNow >= ON || timeNow < OFF)
     {
-      if(STATE == LOW) {STATE = HIGH;}  // SSR Relais EIN
+      if(STATE == LOW) 
+      {
+      STATE = HIGH; // SSR Relais EIN
+      }  
     }
     else
     {
-      if(STATE == HIGH) {STATE = LOW;}  // SSR Relais AUS
+      if(STATE == HIGH)
+      {
+      STATE = LOW; // SSR Relais AUS
+      }  
     }
   }
  

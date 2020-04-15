@@ -479,3 +479,44 @@ ClickEncoder::Button b = encoder->getButton();     // den Button-Status abfragen
   LCDML.FUNC_disableScreensaver();
 
 } //mFunc_timeSetup Ende * * * * * 
+
+
+// *********************************************************************
+void mFunc_timer_info(uint8_t param)
+// *********************************************************************
+{
+  if(LCDML.FUNC_setup())          // ****** SETUP *********
+  {
+
+    LCDML.FUNC_setLoopInterval(100);  // starts a trigger event for the loop function every 100 milliseconds
+    encoder = new ClickEncoder(enc_PinA, enc_PinB, enc_PinC, enc_Step); // den Dreh-Enkoder initialisieren
+    Timer1.initialize(1000);                      // den Interrupt-Timer fuer den Dreh-Enkoder initialisieren
+    Timer1.attachInterrupt(timerIsr);             // und die Interrupt-Funktion festlegen
+    
+    lcd.setCursor(0, 0);
+    lcd.print(F("Datum:")); 
+
+    lcd.setCursor(0, 3);
+    lcd.print(F("Uhrzeit:"));  
+  }
+
+
+  if(LCDML.FUNC_loop())           // ****** LOOP *********
+  {       
+  lcd.setCursor(8, 0);                // set cursor pos
+  lcd.print(rtc.getDateStr());        // print actual date from RTC
+  lcd.setCursor(10, 3);                // set cursor pos
+  lcd.print(rtc.getTimeStr());        // print actual time from RTC
+   
+  ClickEncoder::Button b = encoder->getButton();     // den Button-Status abfragen
+    if (b != ClickEncoder::Open) 
+    {
+      switch (b) 
+      {  
+        case ClickEncoder::Clicked:   // Button wurde einmal angeklickt                                     
+          LCDML.FUNC_goBackToMenu(1);
+        break;
+      }   
+    }  
+  }
+}
