@@ -50,6 +50,7 @@ const uint8_t scroll_bar[5][8] =
 #define enc_Step 4          // Dreh-Enkoder (Werte pro Dreh-Schritt / je nach Dreh-Enkoder anpassen)
 
 #define DAC_RESOLUTION    (8) // Set this value to 9, 8, 7, 6 or 5  DAC-Auflösung
+
 // *********************************************************************
 // Temperatursensor settings
 // *********************************************************************
@@ -66,7 +67,6 @@ void lcdml_menu_control();
 // *********************************************************************
 // Global variables
 // *********************************************************************
-
 int set_screensaverTime = EEPROM.get(20, set_screensaverTime);   // den Wert aus EEPROM lesen
 
 // *********************************************************************
@@ -79,7 +79,6 @@ double lastValue = 0;          // Variable zum speichern des letzten Wertes, dam
 bool ValueChanged = false;  // Variable zum merken, ob eine Aenderung vorgenommen wurde (um den Wert nach Ablauf der writeTime ins EEPROM zu schreiben)
 uint32_t encTime = 0;       // Variable zum speichern der Millisekunden (wird bei jeder Aenderung auf millis() gesetzt)
 const int writeTime = 5000; // Zeit in Millisekunden, nach der ein geaenderter Wert ins EEPROM geschrieben wird
-//const byte eeAddress = 0;   // Adresse im EEPROM fuer den Enkoder-Wert (fuer einen Integer Datentyp werden 2 Bytes geschrieben)
 
 // *********************************************************************
 // // Lux Sensor & Lichtsteuerung
@@ -139,7 +138,21 @@ byte set_doorsOpenM = EEPROM.get(59, set_doorsOpenM);
 
 int set_doorsCloseLux = EEPROM.get(60, set_doorsCloseLux);  
 byte set_doorsCloseM = EEPROM.get(62, set_doorsCloseM);  
-byte set_doorsCloseS = EEPROM.get(63, set_doorsCloseS);    
+byte set_doorsCloseS = EEPROM.get(63, set_doorsCloseS);
+
+unsigned long doorsOpenTimeSEC;
+unsigned long doorsCloseDelaytimeMILLISEC;
+
+byte CaseDoorsOpenClose = 1;
+bool flag_closeMillis = LOW;
+bool TorAuf = LOW;
+bool TorZu = LOW;
+bool flag_doorsOpen = LOW;
+bool flag_doorsClose = LOW;
+unsigned long DoorsRelaisHoldTimeMillis = 300000; //Abfallverzögerung für Auf/Zu-Relais in Millisekunden
+unsigned long TorAuf_millis;
+unsigned long TorZuDelay_millis;
+unsigned long TorZu_millis;
    
 // *********************************************************************
 // Objects
@@ -153,6 +166,7 @@ BH1750 HelligkeitInnen(LOW); // ADDR line LOW/open:  I2C address 0x23 (0x46 incl
 BH1750 HelligkeitAussen(HIGH); // ADDR line HIGH:      I2C address 0x5C (0xB8 including R/W bit)
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT); //PID Regler
 Adafruit_MCP4725 dac; //DAC
+
 // *********************************************************************
 //DAC
 // *********************************************************************
@@ -248,7 +262,6 @@ LCDML_add         (24 , LCDML_0_4_2      , 4  , "Zurueck"            , mFunc_bac
 LCDML_add         (25 , LCDML_0          , 5  , "Info"               , mFunc_info);              // "menuFunction" tab
 LCDML_add         (26 , LCDML_0          , 6  , "Energiesparmodus"   , mFunc_screensaver);       // "menuFunction" tab
 
-// menu element count - last element id
 // this value must be the same as the last menu element
 #define _LCDML_DISP_cnt    26
 
@@ -269,7 +282,6 @@ void setup()
   HelligkeitInnen.startConversion(); // Start conversion
   HelligkeitAussen.startConversion();// Start conversion
 
-  
   // LCD Begin
   // set special chars for scrollbar
   lcd.createChar(0, (uint8_t*)scroll_bar[0]);
@@ -281,34 +293,24 @@ void setup()
   // LCDMenuLib Setup
   LCDML_setup(_LCDML_DISP_cnt);
 
-  
-
   // Enable Menu Rollover
   LCDML.MENU_enRollover();
 
   // Enable Screensaver (screensaver menu function, time to activate in ms)
   //LCDML.SCREEN_enable(mFunc_screensaver, set_screensaverTime*1000); // //Zeit bis zum Einschalten des Bildschirmschoners 
   //LCDML.SCREEN_disable();
- 
-
 
   // You can jump to a menu function from anywhere with
   //LCDML.OTHER_jumpToFunc(mFunc_p2); // the parameter is the function name
-
-
 
   // Set the realtimeclock to run-mode, and disable the write protection
   rtc.halt(false);
   rtc.writeProtect(false);
 
-
   //PID * * * * *
-  //initialize the variables we're linked to
   Input = double(luxInnen/2);
-  Setpoint = 80;
-
-  //turn the PID on
-  myPID.SetMode(AUTOMATIC);
+  Setpoint = 80; 
+  myPID.SetMode(AUTOMATIC); //turn the PID on
   pinMode(PIN_OUTPUT, OUTPUT);
 
   //DAC * * * * * 
@@ -324,6 +326,19 @@ void loop()
   LCDML.SCREEN_enable(mFunc_screensaver, set_screensaverTime*1000); // //Zeit bis zum Einschalten des Bildschirmschoners 
   //LCDML.SCREEN_disable();
 
+
+  //Lux Sensor * * * * *
+  if (HelligkeitInnen.isConversionCompleted()) // Wait for completion (blocking busy-wait delay)
+  {        
+  luxInnen = HelligkeitInnen.read(); // Read light
+  }
+
+  if (HelligkeitAussen.isConversionCompleted()) // Wait for completion (blocking busy-wait delay)
+  {       
+  luxAussen = HelligkeitAussen.read(); // Read light
+  }   
+
+  
   //PID
   dblLuxInnen = double(luxInnen);
 
@@ -350,57 +365,62 @@ void loop()
   unsigned long SEC = (unsigned long)t.sec; 
   unsigned long timeNow = HOUR + MIN + SEC; //aktuelle Tagesuhrzeit in Sekunden  
   //Serial.println(timeNow);
-  
-  unsigned long ON = 50;
-  unsigned long OFF = 65;
-  bool STATE;
 
-  if (ON <= OFF) //an-aus am selben tag
-  {
-    if (timeNow >= ON && timeNow < OFF)
-    {
-      if(STATE == LOW) 
-        {
-        STATE = HIGH; // SSR Relais EIN
-        } 
-    }
-    else
-    {
-      if(STATE == HIGH) 
-      {
-      STATE = LOW; // SSR Relais AUS
-      } 
-    }
-  }
-  else  //schaltzeit über mitternacht hinaus
-  {
-    if (timeNow >= ON || timeNow < OFF)
-    {
-      if(STATE == LOW) 
-      {
-      STATE = HIGH; // SSR Relais EIN
-      }  
-    }
-    else
-    {
-      if(STATE == HIGH)
-      {
-      STATE = LOW; // SSR Relais AUS
-      }  
-    }
-  }
- 
-  //* * * * *
-
-  //Lux Sensor * * * * *
-  if (HelligkeitInnen.isConversionCompleted()) // Wait for completion (blocking busy-wait delay)
-  {        
-  luxInnen = HelligkeitInnen.read(); // Read light
-  }
-
-  if (HelligkeitAussen.isConversionCompleted()) // Wait for completion (blocking busy-wait delay)
-  {       
-  luxAussen = HelligkeitAussen.read(); // Read light
-  }
+  doorsOpenTimeSEC = ((unsigned long)set_doorsOpenH * 3600) + ((unsigned long)set_doorsOpenM * 60); //eingestellte Öffnungsuhrzeit in Sekunden
+  doorsCloseDelaytimeMILLISEC = (((unsigned long)set_doorsCloseM * 60) + ((unsigned long)set_doorsCloseS))*1000; // eingestellte (Millisekunden) Wartezeit für Torschließung bei Unterschreitung x-Lux
    
+    switch (CaseDoorsOpenClose) 
+    { 
+      case 1: //Tor Öffnen
+
+      flag_doorsClose = LOW;
+       
+      if ((timeNow >= doorsOpenTimeSEC) && flag_doorsOpen == LOW)
+      {
+      TorAuf = HIGH; // Tor öffnen
+      TorAuf_millis = millis();
+      flag_doorsOpen = HIGH;
+      }
+
+      if(millis() > (DoorsRelaisHoldTimeMillis + TorAuf_millis))  
+      {
+      TorAuf = LOW;            
+      CaseDoorsOpenClose = 2;
+      }
+      break;  //case '1' Ende * * * * * *
+
+        case 2: //Tor Schließen
+
+        flag_doorsOpen = LOW;
+        
+        if ((luxAussen/2 < set_doorsCloseLux) && flag_closeMillis == LOW)
+        {
+        TorZuDelay_millis = millis();
+        flag_closeMillis = HIGH;    
+        }
+        
+        if (luxAussen/2 > set_doorsCloseLux)
+        {
+        flag_closeMillis = LOW;
+        }
+         
+        if((millis() > (doorsCloseDelaytimeMILLISEC + TorZuDelay_millis)) && flag_doorsClose == LOW)  
+        {
+        TorZu = HIGH; // Tor schließen
+        TorZu_millis = millis();
+        flag_doorsClose = HIGH;
+        }
+  
+        if(millis() > (DoorsRelaisHoldTimeMillis + TorZu_millis))  
+        {
+        TorZu = LOW;    
+        }
+
+        if(1 < timeNow < 60)
+        {
+        CaseDoorsOpenClose = 2;
+        }  
+        break;  //case '2' Ende * * * * * *        
+    }  
+  
 }

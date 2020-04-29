@@ -14,12 +14,12 @@ void mFunc_lux(uint8_t param)
   Timer1.attachInterrupt(timerIsr);             // und die Interrupt-Funktion festlegen
  
   lcd.setCursor(0, 0);
-  lcd.print("Helligkeit Aussen:");
+  lcd.print("Helligkeit Stall:");
   lcd.setCursor(8, 1);
   lcd.print("lux");
 
   lcd.setCursor(0, 2);
-  lcd.print("Helligkeit Stall:");
+  lcd.print("Helligkeit Aussen:");
   lcd.setCursor(8, 3);
   lcd.print("lux");
   }
