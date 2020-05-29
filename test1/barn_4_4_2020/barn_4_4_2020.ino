@@ -58,6 +58,12 @@ const uint8_t scroll_bar[5][8] =
 OneWire  tempsens(4);  // on pin 4 (a 4.7K resistor is necessary) Temperatursensor
 
 // *********************************************************************
+// Torsteuerung settings
+// *********************************************************************
+#define TorAufPIN 39
+#define TorZuPIN 41
+
+// *********************************************************************
 // Prototypes
 // *********************************************************************
 void lcdml_menu_display();
@@ -145,11 +151,9 @@ unsigned long doorsCloseDelaytimeMILLISEC;
 
 byte CaseDoorsOpenClose = 1;
 bool flag_closeMillis = LOW;
-bool TorAuf = LOW;
-bool TorZu = LOW;
 bool flag_doorsOpen = LOW;
 bool flag_doorsClose = LOW;
-unsigned long DoorsRelaisHoldTimeMillis = 300000; //Abfallverzögerung für Auf/Zu-Relais in Millisekunden
+unsigned long DoorsRelaisHoldTimeMillis = 15000;//300000; //Abfallverzögerung für Auf/Zu-Relais in Millisekunden
 unsigned long TorAuf_millis;
 unsigned long TorZuDelay_millis;
 unsigned long TorZu_millis;
@@ -315,6 +319,12 @@ void setup()
 
   //DAC * * * * * 
   dac.begin(0x62); // For Adafruit MCP4725A1 the address is 0x62 (default) or 0x63 (ADDR pin tied to VCC)
+
+  //Torsteuerung * * * * *
+  pinMode(TorAufPIN, OUTPUT);
+  pinMode(TorZuPIN, OUTPUT);
+  digitalWrite(TorAufPIN, HIGH); 
+  digitalWrite(TorZuPIN, HIGH); 
 }
 
 
@@ -364,62 +374,72 @@ void loop()
   unsigned long MIN = (unsigned long)t.min * 60;
   unsigned long SEC = (unsigned long)t.sec; 
   unsigned long timeNow = HOUR + MIN + SEC; //aktuelle Tagesuhrzeit in Sekunden  
-  //Serial.println(timeNow);
+  
 
   doorsOpenTimeSEC = ((unsigned long)set_doorsOpenH * 3600) + ((unsigned long)set_doorsOpenM * 60); //eingestellte Öffnungsuhrzeit in Sekunden
   doorsCloseDelaytimeMILLISEC = (((unsigned long)set_doorsCloseM * 60) + ((unsigned long)set_doorsCloseS))*1000; // eingestellte (Millisekunden) Wartezeit für Torschließung bei Unterschreitung x-Lux
-   
-    switch (CaseDoorsOpenClose) 
+  Serial.print("doorsOpenTimeSec     ");
+ Serial.println(doorsOpenTimeSEC);
+ 
+    switch (CaseDoorsOpenClose)  // WICHTIG!!!! : Ansteuerung vom Relaismodul funktioniert nur invertiert (LOW = 1, HIGH = 0)
     { 
       case 1: //Tor Öffnen
-
+      Serial.println("TODO 1");
+      digitalWrite(TorZuPIN, HIGH);
       flag_doorsClose = LOW;
-       
+        
       if ((timeNow >= doorsOpenTimeSEC) && flag_doorsOpen == LOW)
       {
-      TorAuf = HIGH; // Tor öffnen
+        Serial.println("Reis auf de lucka");
+      digitalWrite(TorAufPIN, LOW); // Tor öffnen
       TorAuf_millis = millis();
       flag_doorsOpen = HIGH;
       }
 
-      if(millis() > (DoorsRelaisHoldTimeMillis + TorAuf_millis))  
+      if((millis() > (DoorsRelaisHoldTimeMillis + TorAuf_millis)) && flag_doorsOpen == HIGH)  
       {
-      TorAuf = LOW;            
+      digitalWrite(TorAufPIN, HIGH);             
       CaseDoorsOpenClose = 2;
       }
       break;  //case '1' Ende * * * * * *
 
         case 2: //Tor Schließen
-
+        Serial.println("TODO 2");
+        digitalWrite(TorAufPIN, HIGH);
         flag_doorsOpen = LOW;
         
         if ((luxAussen/2 < set_doorsCloseLux) && flag_closeMillis == LOW)
         {
+          Serial.println("kleiner als Shutdown");
         TorZuDelay_millis = millis();
         flag_closeMillis = HIGH;    
         }
         
         if (luxAussen/2 > set_doorsCloseLux)
         {
+          Serial.println("GRÖSSER als Shutdown");
         flag_closeMillis = LOW;
         }
          
-        if((millis() > (doorsCloseDelaytimeMILLISEC + TorZuDelay_millis)) && flag_doorsClose == LOW)  
+        if((millis() > (doorsCloseDelaytimeMILLISEC + TorZuDelay_millis)) && flag_doorsClose == LOW && flag_closeMillis == HIGH)  
         {
-        TorZu = HIGH; // Tor schließen
+        digitalWrite(TorZuPIN, LOW); // Tor schließen
+        Serial.println("Huansohn");
         TorZu_millis = millis();
         flag_doorsClose = HIGH;
         }
   
-        if(millis() > (DoorsRelaisHoldTimeMillis + TorZu_millis))  
+        if(millis() > (DoorsRelaisHoldTimeMillis + TorZu_millis) && flag_doorsClose == HIGH)  
         {
-        TorZu = LOW;    
+        digitalWrite(TorZuPIN, HIGH);         
+          if((timeNow > 1) && (timeNow < 60))
+          {
+          CaseDoorsOpenClose = 1;
+          Serial.println("CASEJUMP");      
+          }         
         }
 
-        if(1 < timeNow < 60)
-        {
-        CaseDoorsOpenClose = 2;
-        }  
+       
         break;  //case '2' Ende * * * * * *        
     }  
   

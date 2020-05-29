@@ -18,7 +18,7 @@ void mFunc_temp_barn(uint8_t param)
   lcd.setCursor(2, 1);                
   lcd.print("Temperatur Stall");        
   lcd.setCursor(6, 2);                
-  lcd.print("-");   // aktuelle Temperatur
+  lcd.print("-----");   // aktuelle Temperatur
   lcd.setCursor(12, 2);                
   lcd.write(223);       //223 °-Symbol    ANM.:HD44780U Hitachi char library 
   lcd.setCursor(13, 2);
