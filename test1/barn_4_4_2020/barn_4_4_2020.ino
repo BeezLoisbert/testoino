@@ -60,8 +60,13 @@ OneWire  tempsens(4);  // on pin 4 (a 4.7K resistor is necessary) Temperatursens
 // *********************************************************************
 // Torsteuerung settings
 // *********************************************************************
-#define TorAufPIN 39
-#define TorZuPIN 41
+#define chickenONOFF_IN1 39
+#define chicken_IN2 41
+#define chicken_IN3 43
+
+#define turkeyONOFF_IN4 45
+#define turkey_IN5 47
+#define turkey_IN6 49
 
 // *********************************************************************
 // Prototypes
@@ -150,13 +155,18 @@ unsigned long doorsOpenTimeSEC;
 unsigned long doorsCloseDelaytimeMILLISEC;
 
 byte CaseDoorsOpenClose = 1;
+bool TorAuf = HIGH;
+bool TorZu = HIGH;
 bool flag_closeMillis = LOW;
 bool flag_doorsOpen = LOW;
 bool flag_doorsClose = LOW;
+bool flag_relaisTOF = LOW;
 unsigned long DoorsRelaisHoldTimeMillis = 15000;//300000; //Abfallverzögerung für Auf/Zu-Relais in Millisekunden
 unsigned long TorAuf_millis;
 unsigned long TorZuDelay_millis;
 unsigned long TorZu_millis;
+unsigned long relais_TONTOF = 1000; //Ein-/Ausschaltverzögerung für Relais 1 und 4 (Ein/Ausschalter für Torantriebe)
+unsigned long relaisTOF_millis;
    
 // *********************************************************************
 // Objects
@@ -166,8 +176,8 @@ LCDMenuLib2 LCDML(LCDML_0, _LCDML_DISP_rows, _LCDML_DISP_cols, lcdml_menu_displa
 DS1302 rtc(8, 12, 10);  // (RST,DAT,CLK) Creation of the Real Time Clock Object
 Time t; //Uhrzeit aus RTC auslesen
 ClickEncoder *encoder;      // Dreh-Enkoder mit Klickbutton
-BH1750 HelligkeitInnen(LOW); // ADDR line LOW/open:  I2C address 0x23 (0x46 including R/W bit) [default]
-BH1750 HelligkeitAussen(HIGH); // ADDR line HIGH:      I2C address 0x5C (0xB8 including R/W bit)
+BH1750 HelligkeitInnen(HIGH); // ADDR line LOW/open:  I2C address 0x23 (0x46 including R/W bit) [default]
+BH1750 HelligkeitAussen(LOW); // ADDR line HIGH:      I2C address 0x5C (0xB8 including R/W bit)
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT); //PID Regler
 Adafruit_MCP4725 dac; //DAC
 
@@ -321,10 +331,20 @@ void setup()
   dac.begin(0x62); // For Adafruit MCP4725A1 the address is 0x62 (default) or 0x63 (ADDR pin tied to VCC)
 
   //Torsteuerung * * * * *
-  pinMode(TorAufPIN, OUTPUT);
-  pinMode(TorZuPIN, OUTPUT);
-  digitalWrite(TorAufPIN, HIGH); 
-  digitalWrite(TorZuPIN, HIGH); 
+  pinMode(chickenONOFF_IN1, OUTPUT);
+  pinMode(chicken_IN2, OUTPUT);
+  pinMode(chicken_IN3, OUTPUT);
+  digitalWrite(chickenONOFF_IN1, HIGH);
+  digitalWrite(chicken_IN2, HIGH);
+  digitalWrite(chicken_IN3, HIGH);
+  
+  pinMode(turkeyONOFF_IN4, OUTPUT);
+  pinMode(turkey_IN5, OUTPUT);
+  pinMode(turkey_IN6, OUTPUT);
+  digitalWrite(turkeyONOFF_IN4, HIGH);
+  digitalWrite(turkey_IN5, HIGH);
+  digitalWrite(turkey_IN6, HIGH);
+
 }
 
 
@@ -361,14 +381,18 @@ void loop()
   myPID.Compute();
  
   analogWrite(PIN_OUTPUT, Output);
-  //PID ENDE
+  
 
+  //Lichtsteuerung
+  
+
+xxxxxxxxxxxxxxxxxxxxx
 
   //DAC - Digital Analog Converter 0-10VDC ANM.: *25 Skalierungsfaktor für Ausgangsspannung, false: Wert nicht in EEPROM speichern
   dac.setVoltage((uint16_t(Output)*25), false);
   
 
-  //Zeitschaltuhr Tore
+  //Torsteuerung
   t = rtc.getTime();
   unsigned long HOUR = (unsigned long)t.hour * 3600;
   unsigned long MIN = (unsigned long)t.min * 60;
@@ -378,69 +402,118 @@ void loop()
 
   doorsOpenTimeSEC = ((unsigned long)set_doorsOpenH * 3600) + ((unsigned long)set_doorsOpenM * 60); //eingestellte Öffnungsuhrzeit in Sekunden
   doorsCloseDelaytimeMILLISEC = (((unsigned long)set_doorsCloseM * 60) + ((unsigned long)set_doorsCloseS))*1000; // eingestellte (Millisekunden) Wartezeit für Torschließung bei Unterschreitung x-Lux
-  Serial.print("doorsOpenTimeSec     ");
- Serial.println(doorsOpenTimeSEC);
  
     switch (CaseDoorsOpenClose)  // WICHTIG!!!! : Ansteuerung vom Relaismodul funktioniert nur invertiert (LOW = 1, HIGH = 0)
     { 
       case 1: //Tor Öffnen
-      Serial.println("TODO 1");
-      digitalWrite(TorZuPIN, HIGH);
+  
       flag_doorsClose = LOW;
         
       if ((timeNow >= doorsOpenTimeSEC) && flag_doorsOpen == LOW)
       {
-        Serial.println("Reis auf de lucka");
-      digitalWrite(TorAufPIN, LOW); // Tor öffnen
+      TorAuf = LOW; // Tor öffnen
       TorAuf_millis = millis();
       flag_doorsOpen = HIGH;
       }
 
       if((millis() > (DoorsRelaisHoldTimeMillis + TorAuf_millis)) && flag_doorsOpen == HIGH)  
       {
-      digitalWrite(TorAufPIN, HIGH);             
+      TorAuf = HIGH; 
+      relaisTOF_millis = millis();            
       CaseDoorsOpenClose = 2;
       }
       break;  //case '1' Ende * * * * * *
 
         case 2: //Tor Schließen
-        Serial.println("TODO 2");
-        digitalWrite(TorAufPIN, HIGH);
+        
         flag_doorsOpen = LOW;
         
         if ((luxAussen/2 < set_doorsCloseLux) && flag_closeMillis == LOW)
         {
-          Serial.println("kleiner als Shutdown");
         TorZuDelay_millis = millis();
         flag_closeMillis = HIGH;    
         }
         
         if (luxAussen/2 > set_doorsCloseLux)
         {
-          Serial.println("GRÖSSER als Shutdown");
         flag_closeMillis = LOW;
         }
          
         if((millis() > (doorsCloseDelaytimeMILLISEC + TorZuDelay_millis)) && flag_doorsClose == LOW && flag_closeMillis == HIGH)  
         {
-        digitalWrite(TorZuPIN, LOW); // Tor schließen
-        Serial.println("Huansohn");
+        TorZu = LOW; // Tor schließen
         TorZu_millis = millis();
         flag_doorsClose = HIGH;
         }
   
         if(millis() > (DoorsRelaisHoldTimeMillis + TorZu_millis) && flag_doorsClose == HIGH)  
         {
-        digitalWrite(TorZuPIN, HIGH);         
-          if((timeNow > 1) && (timeNow < 60))
+        TorZu = HIGH;
+          if(flag_relaisTOF == LOW)
           {
-          CaseDoorsOpenClose = 1;
-          Serial.println("CASEJUMP");      
-          }         
-        }
-
-       
+          relaisTOF_millis = millis();
+          flag_relaisTOF = HIGH;         
+          }
+            if((timeNow > 1) && (timeNow < 60)) //Casesprung kommt erst bei aktueller Tagesuhrzeit zw. 00:00:00 und 00:01:00
+            {
+            flag_relaisTOF = LOW;
+            CaseDoorsOpenClose = 1;                
+            }         
+        }      
         break;  //case '2' Ende * * * * * *        
+    }
+
+
+    // WICHTIG!!!! : Ansteuerung vom Relaismodul funktioniert nur invertiert (LOW = 1, HIGH = 0)
+    
+    if(CaseDoorsOpenClose == 1 && TorAuf == HIGH)
+    {
+    digitalWrite(chickenONOFF_IN1, HIGH);
+    digitalWrite(turkeyONOFF_IN4, HIGH);         
+      if(millis() > (relaisTOF_millis + relais_TONTOF))
+      {
+      digitalWrite(chicken_IN2, HIGH);
+      digitalWrite(chicken_IN3, HIGH);      
+      digitalWrite(turkey_IN5, HIGH);
+      digitalWrite(turkey_IN6, HIGH);
+      }   
+    }   
+      else if(CaseDoorsOpenClose == 1 && TorAuf == LOW)
+      {      
+      digitalWrite(chicken_IN2, HIGH);
+      digitalWrite(chicken_IN3, HIGH);        
+      digitalWrite(turkey_IN5, HIGH);
+      digitalWrite(turkey_IN6, HIGH);
+        if(millis() > (TorAuf_millis + relais_TONTOF))
+        {
+        digitalWrite(chickenONOFF_IN1, LOW);
+        digitalWrite(turkeyONOFF_IN4, LOW); 
+        }
+      }
+
+    if(CaseDoorsOpenClose == 2 && TorZu == HIGH)
+    {
+    digitalWrite(chickenONOFF_IN1, HIGH);
+    digitalWrite(turkeyONOFF_IN4, HIGH);         
+      if(millis() > (relaisTOF_millis + relais_TONTOF))
+      {
+      digitalWrite(chicken_IN2, HIGH);
+      digitalWrite(chicken_IN3, HIGH);      
+      digitalWrite(turkey_IN5, HIGH);
+      digitalWrite(turkey_IN6, HIGH);
+      }   
     }  
-  
+      else if(CaseDoorsOpenClose == 2 && TorZu == LOW)
+      {
+      digitalWrite(chicken_IN2, LOW);
+      digitalWrite(chicken_IN3, LOW);  
+      digitalWrite(turkey_IN5, LOW);
+      digitalWrite(turkey_IN6, LOW);
+       if(millis() > (TorZu_millis + relais_TONTOF))
+       {
+        digitalWrite(chickenONOFF_IN1, LOW);
+        digitalWrite(turkeyONOFF_IN4, LOW); 
+        }
+      }
+    
 }
