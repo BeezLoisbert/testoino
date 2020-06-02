@@ -141,6 +141,12 @@ int set_hystluxOFF = EEPROM.get(54, set_hystluxOFF);
 byte set_hysttimeOFFM = EEPROM.get(56, set_hysttimeOFFM);  
 byte set_hysttimeOFFS = EEPROM.get(57, set_hysttimeOFFS);
 
+unsigned long HOUR = 0; //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
+unsigned long MIN = 0;  //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
+unsigned long SEC = 0;  //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
+unsigned long timeNow = 0; //aktuelle Tagesuhrzeit in Sekunden  
+  
+
 // *********************************************************************
 // Torsteuerung
 // *********************************************************************
@@ -383,10 +389,26 @@ void loop()
   analogWrite(PIN_OUTPUT, Output);
   
 
-  //Lichtsteuerung
+  //Lichtsteuerung 
   
+  unsigned long starttimeHOUR = (unsigned long) set_starttimeH * 3600;
+  unsigned long starttimeMIN = (unsigned long) set_starttimeM * 60;
+  unsigned long starttimeSEC = starttimeHOUR + starttimeMIN; //Eingestellte "Sonnenaufgangsuhrzeit" in Sekunden
 
-xxxxxxxxxxxxxxxxxxxxx
+  unsigned long startdurationHOUR = (unsigned long) set_startdurationH * 3600;
+  unsigned long startdurationMIN = (unsigned long) set_startdurationM * 60;
+  unsigned long startdurationSEC = startdurationHOUR + startdurationMIN; //Eingestellte Dauer des "Sonnenaufgangs" (Dauer 0-100% Leuchtkraft)
+
+  unsigned long startdurationEND = starttimeSEC + startdurationSEC;
+
+  //unsigned long sunriseStep = (timeNow - starttimeSEC) * (255 - 0) / startdurationSEC;
+
+  unsigned long sunriseStep = map(timeNow, starttimeSEC, startdurationEND, 0, 255);
+  
+  Serial.print("STEPS    ");
+  Serial.println(sunriseStep);
+  Serial.print("TIME    ");
+  Serial.println(timeNow);
 
   //DAC - Digital Analog Converter 0-10VDC ANM.: *25 Skalierungsfaktor für Ausgangsspannung, false: Wert nicht in EEPROM speichern
   dac.setVoltage((uint16_t(Output)*25), false);
@@ -394,10 +416,10 @@ xxxxxxxxxxxxxxxxxxxxx
 
   //Torsteuerung
   t = rtc.getTime();
-  unsigned long HOUR = (unsigned long)t.hour * 3600;
-  unsigned long MIN = (unsigned long)t.min * 60;
-  unsigned long SEC = (unsigned long)t.sec; 
-  unsigned long timeNow = HOUR + MIN + SEC; //aktuelle Tagesuhrzeit in Sekunden  
+  HOUR = (unsigned long)t.hour * 3600;
+  MIN = (unsigned long)t.min * 60;
+  SEC = (unsigned long)t.sec; 
+  timeNow = HOUR + MIN + SEC; //aktuelle Tagesuhrzeit in Sekunden  
   
 
   doorsOpenTimeSEC = ((unsigned long)set_doorsOpenH * 3600) + ((unsigned long)set_doorsOpenM * 60); //eingestellte Öffnungsuhrzeit in Sekunden

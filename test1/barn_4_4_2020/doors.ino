@@ -16,7 +16,7 @@
   int eee, fff;
 
 // *********************************************************************
-void mFunc_doors(uint8_t param)
+void mFunc_doors(uint8_t param) //UHRZEIT FÜR ÖFFNUNG DER TORE
 // *********************************************************************
 {
     if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -254,7 +254,7 @@ void mFunc_doors(uint8_t param)
   int iii, jjj;
 
 // *********************************************************************
-void mFunc_Hystdoors(uint8_t param)
+void mFunc_Hystdoors(uint8_t param) //HYSTERESE FÜR TORSCHLIESSUNG (UNTERSCHREITUNG VON X-LUX + WARTEZEIT)
 // *********************************************************************
 {
     if(LCDML.FUNC_setup())          // ****** SETUP *********

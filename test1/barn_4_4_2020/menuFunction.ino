@@ -50,7 +50,7 @@ void your_function_name(uint8_t param)
   unsigned long ETmillis = 0;  //Hilfsvariable für ETscreenoff Anzeige
   
 // *********************************************************************
-void mFunc_screensaver(uint8_t param)
+void mFunc_screensaver(uint8_t param) // ENERGIESPARMODUS LADEBILDSCHIRM
 // *********************************************************************
 {
   if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -123,7 +123,7 @@ void mFunc_screensaver(uint8_t param)
 
 
 // *********************************************************************
-void mFunc_back(uint8_t param)
+void mFunc_back(uint8_t param) //SPRUNG EINE EBENE ZURÜCK
 // *********************************************************************
 {
   if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -135,7 +135,7 @@ void mFunc_back(uint8_t param)
 
 
 // *********************************************************************
-void mFunc_goToRootMenu(uint8_t param)
+void mFunc_goToRootMenu(uint8_t param) //SPRUNG ZUM HOMESCREEN
 // *********************************************************************
 {
   if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -167,7 +167,7 @@ void mFunc_goToRootMenu(uint8_t param)
   int cc = 0, dd = 0;
 
 // *********************************************************************
-void mFunc_screensaverSetup(uint8_t param) //Zeit bis zum Einschalten des Bildschirmschoners
+void mFunc_screensaverSetup(uint8_t param) //ZEIT BIS ZUM EINSCHALTEN DES BILDSCHIRMSCHONERS
 // *********************************************************************
 {
  
@@ -341,7 +341,7 @@ void mFunc_screensaverSetup(uint8_t param) //Zeit bis zum Einschalten des Bildsc
 }
 
  // *********************************************************************
-void mFunc_info(uint8_t param)
+void mFunc_info(uint8_t param) //ENTWICKLERINFORMATION
 // *********************************************************************
 {
   if(LCDML.FUNC_setup())          // ****** SETUP *********

@@ -34,7 +34,7 @@ String txtMsg2 ;
 //Speicheranimation Ende * * * * *
 
 // *********************************************************************
-void mFunc_timeSetup(uint8_t param)
+void mFunc_timeSetup(uint8_t param) //DATUM UND UHRZEIT EINSTELLEN
 // *********************************************************************
 {
   if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -482,7 +482,7 @@ ClickEncoder::Button b = encoder->getButton();     // den Button-Status abfragen
 
 
 // *********************************************************************
-void mFunc_timer_info(uint8_t param)
+void mFunc_timer_info(uint8_t param) //DATUM UND UHRZEIT ANZEIGE
 // *********************************************************************
 {
   if(LCDML.FUNC_setup())          // ****** SETUP *********

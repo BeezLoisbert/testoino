@@ -3,7 +3,7 @@ byte type_s = 0;
 byte addr[8];
 
 // *********************************************************************
-void mFunc_temp_barn(uint8_t param)
+void mFunc_temp_barn(uint8_t param) //AKTUELLE TEMPERATUR IM STALL
 // *********************************************************************
 {
   const unsigned long delaytime = 1200;  //Zeit in Millisekunden Tempsens delay
@@ -135,7 +135,7 @@ void mFunc_temp_barn(uint8_t param)
   int gg = 0, hh = 0;
 
 // *********************************************************************
-void mFunc_tempOffset(uint8_t param)
+void mFunc_tempOffset(uint8_t param) //OFFSETVERSTELLUNG FÜR AKTUELLE TEMPERATUR IM STALL
 // *********************************************************************
 {
   if(LCDML.FUNC_setup())          // ****** SETUP *********

@@ -1,7 +1,7 @@
 
 
 // *********************************************************************
-void mFunc_lux(uint8_t param)
+void mFunc_lux(uint8_t param)  //AKTUELLE SENSORWERTE LICHT AUSSEN UND LICHT INNEN
 // *********************************************************************
 {
   if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -109,7 +109,7 @@ void mFunc_lux(uint8_t param)
   double ValueStepPID = 0.01; //Faktor für Wertänderung pro Encoderstep
   
 // *********************************************************************
-void mFunc_luxPID(uint8_t param)
+void mFunc_luxPID(uint8_t param) //PID REGLERPARAMETER FÜR LICHTSTEUERUNG
 // *********************************************************************
 {
     if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -564,7 +564,7 @@ void mFunc_luxPID(uint8_t param)
   int ww, xx;
 
 // *********************************************************************
-void mFunc_HystON(uint8_t param)
+void mFunc_HystON(uint8_t param) //HYSTERESE FÜR EINSCHALTEN BEI UNTERSCHREITUNG EINER TAGESHELLIGKEIT
 // *********************************************************************
 {
     if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -878,7 +878,7 @@ void mFunc_HystON(uint8_t param)
   int aaa, bbb;
 
 // *********************************************************************
-void mFunc_HystOFF(uint8_t param)
+void mFunc_HystOFF(uint8_t param) //HYSTERESE FÜR AUSSCHALTEN BEI ÜBERSCHREITUNG EINER TAGESHELLIGKEIT
 // *********************************************************************
 {
     if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -1192,7 +1192,7 @@ void mFunc_HystOFF(uint8_t param)
   int oo, pp;
 
 // *********************************************************************
-void mFunc_luxBegin(uint8_t param)
+void mFunc_luxBegin(uint8_t param) //"SONNENAUFGANGSZEIT" UND DAUER DES "SONNENAUFGANGS" + ERR. ENDZEIT
 // *********************************************************************
 {
     if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -1337,7 +1337,10 @@ void mFunc_luxBegin(uint8_t param)
             {
             lcd.setCursor(16, 3);
             lcd.print(estEndtimeM);
-            } 
+            }
+        lcd.setCursor(18, 3);
+        lcd.print(" ");
+         
       }
     
       switch (CASEluxBegin) 
@@ -1585,7 +1588,7 @@ void mFunc_luxBegin(uint8_t param)
   int ss, tt;
 
 // *********************************************************************
-void mFunc_luxEnd(uint8_t param)
+void mFunc_luxEnd(uint8_t param) //DAUER DER "KÜNSTLICHEN SONNE" UND DAUER DES "SONNENUNTERGANGS" + ERR. ENDZEIT
 // *********************************************************************
 {
     if(LCDML.FUNC_setup())          // ****** SETUP *********
@@ -1963,7 +1966,7 @@ void mFunc_luxEnd(uint8_t param)
 
 
 // ****************
-void timeOverflow() //Hilfsfunktion für Minutenüberlauf bei estEndtime-Berechnung
+void timeOverflow() //HILFSFUNKTION FÜR MINUTENÜBERLAUF BEI estEndtime-BERECHNUNG
 // ****************
 {
   preEndM = set_starttimeM + set_startdurationM + set_suntimeM + set_enddurationM;
