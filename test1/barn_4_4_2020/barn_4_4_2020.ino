@@ -145,7 +145,9 @@ unsigned long HOUR = 0; //Hilfsvariable für Berechnung der aktuellen Tagesuhrze
 unsigned long MIN = 0;  //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
 unsigned long SEC = 0;  //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
 unsigned long timeNow = 0; //aktuelle Tagesuhrzeit in Sekunden  
-  
+
+byte CaseLight = 1;
+byte sunriseStep = 0; //Regelwert für Digitalpotentiometer (bereich 0-255)
 
 // *********************************************************************
 // Torsteuerung
@@ -403,12 +405,42 @@ void loop()
 
   //unsigned long sunriseStep = (timeNow - starttimeSEC) * (255 - 0) / startdurationSEC;
 
-  unsigned long sunriseStep = map(timeNow, starttimeSEC, startdurationEND, 0, 255);
   
   Serial.print("STEPS    ");
   Serial.println(sunriseStep);
   Serial.print("TIME    ");
   Serial.println(timeNow);
+
+  switch (CaseLight)
+  {
+    case 1: //Sonnenaufgang
+
+    if((timeNow > starttimeSEC) && (timeNow < startdurationEND))
+    {
+    sunriseStep = map(timeNow, starttimeSEC, startdurationEND, 15, 177); //Poti 8-Bit Auflösung, 1 Step = 192,3125 OHM
+    //Lampe MIN Leuchtkraft bei 3,1kOhm, MAX Leuchtkraft bei 34,7kOhm, daraus ergeben sich der Startwert 15 und Endwert 177   
+    }
+    else
+    {
+    sunriseStep = 255;
+    }
+    break; //case 1 ENDE
+  }
+
+  Wire.beginTransmission(0x2C);
+  Wire.write(byte(0x00)); //sends instruction byte  
+  Wire.write(sunriseStep);
+  Wire.endTransmission();
+ 
+  
+  
+
+
+
+
+
+
+
 
   //DAC - Digital Analog Converter 0-10VDC ANM.: *25 Skalierungsfaktor für Ausgangsspannung, false: Wert nicht in EEPROM speichern
   dac.setVoltage((uint16_t(Output)*25), false);
