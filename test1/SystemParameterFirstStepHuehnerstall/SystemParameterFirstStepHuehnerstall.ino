@@ -43,6 +43,8 @@ int set_doorsCloseLux = 22;
 byte set_doorsCloseM = 22;
 byte set_doorsCloseS = 22;
 
+int set_luxSOLL = 100;
+
   void setup() 
   {   
   }
@@ -91,5 +93,7 @@ byte set_doorsCloseS = 22;
   EEPROM.put(62, set_doorsCloseM);  // Uhrzeit Torschließung [h]
   EEPROM.put(63, set_doorsCloseS);  // Uhrzeit Torschließung [min]
 
+  EEPROM.put(64, set_luxSOLL);  // Tageshelligkeit SOLL [lx]
+   
   delay(5000);
 }

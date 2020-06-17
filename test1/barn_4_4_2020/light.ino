@@ -104,8 +104,8 @@ void mFunc_lux(uint8_t param)  //AKTUELLE SENSORWERTE LICHT AUSSEN UND LICHT INN
   int startPoint8 = 5;   //set starting point
   int endPoint8 = 17;    //set ending point
   String txtMsg8 = "gespeichert !";
-  int ii, jj;
-  int kk, ll;
+  int ii=0, jj=0;
+  int kk=0, ll=0;
   double ValueStepPID = 0.01; //Faktor für Wertänderung pro Encoderstep
   
 // *********************************************************************
@@ -139,7 +139,9 @@ void mFunc_luxPID(uint8_t param) //PID REGLERPARAMETER FÜR LICHTSTEUERUNG
     Timer1.attachInterrupt(timerIsr);             // und die Interrupt-Funktion festlegen
      
     lcd.setCursor(0, 0);                
-    lcd.print("Taktrate:");        
+    lcd.print("Taktrate:");
+    lcd.setCursor(16, 0);                
+    lcd.print("ms");        
     lcd.setCursor(0, 1);                
     lcd.print("prop. Kp:");   
     lcd.setCursor(0, 2);                
@@ -162,6 +164,8 @@ void mFunc_luxPID(uint8_t param) //PID REGLERPARAMETER FÜR LICHTSTEUERUNG
         lcd.print(set_pidSampletime);
         lcd.setCursor(13, 0);
         lcd.print(" ");
+        lcd.setCursor(16, 0);
+        lcd.print("ms");
         }
           else if (set_pidSampletime > 999)
           {
@@ -182,7 +186,7 @@ void mFunc_luxPID(uint8_t param) //PID REGLERPARAMETER FÜR LICHTSTEUERUNG
               lcd.setCursor(14, 0);
               lcd.print(" ");
               lcd.setCursor(16, 0);
-              lcd.print(" ");
+              lcd.print("ms");
               } 
                 else 
                 {
@@ -560,8 +564,8 @@ void mFunc_luxPID(uint8_t param) //PID REGLERPARAMETER FÜR LICHTSTEUERUNG
   int startPoint14 = 5;   //set starting point
   int endPoint14 = 17;    //set ending point
   String txtMsg14 = "gespeichert !";
-  int uu, vv;
-  int ww, xx;
+  int uu=0, vv=0;
+  int ww=0, xx=0;
 
 // *********************************************************************
 void mFunc_HystON(uint8_t param) //HYSTERESE FÜR EINSCHALTEN BEI UNTERSCHREITUNG EINER TAGESHELLIGKEIT
@@ -874,8 +878,8 @@ void mFunc_HystON(uint8_t param) //HYSTERESE FÜR EINSCHALTEN BEI UNTERSCHREITUN
   int startPoint16 = 5;   //set starting point
   int endPoint16 = 17;    //set ending point
   String txtMsg16 = "gespeichert !";
-  int yy, zz;
-  int aaa, bbb;
+  int yy=0, zz=0;
+  int aaa=0, bbb=0;
 
 // *********************************************************************
 void mFunc_HystOFF(uint8_t param) //HYSTERESE FÜR AUSSCHALTEN BEI ÜBERSCHREITUNG EINER TAGESHELLIGKEIT
@@ -1174,6 +1178,202 @@ void mFunc_HystOFF(uint8_t param) //HYSTERESE FÜR AUSSCHALTEN BEI ÜBERSCHREITU
 
 }
 
+
+
+  byte CASEluxSOLL = 1;
+
+  bool flag_SAVEluxSOLL = LOW;  
+  bool flag_luxSOLL = LOW;
+  
+  int startPoint25 = 1;   //set starting point
+  int endPoint25 = 19;    //set ending point
+  String txtMsg25 = "Helligkeitsparameter";
+  int startPoint26 = 5;   //set starting point
+  int endPoint26 = 17;    //set ending point
+  String txtMsg26 = "gespeichert !";
+  int abc=0, def=0; 
+  int ghi=0, jkl=0;
+
+// *********************************************************************
+void mFunc_luxSOLL(uint8_t param) //SOLLWERT FÜR TAGESHELLIGKEIT
+// *********************************************************************
+{
+    if(LCDML.FUNC_setup())          // ****** SETUP *********
+    {
+    CASEluxSOLL = 1;
+    flag_luxSOLL = LOW;
+    flag_SAVEluxSOLL = LOW;
+    startPoint25 = 1;   
+    endPoint25 = 20;    
+    startPoint26 = 5;   
+    endPoint26 = 17;   
+
+    set_luxSOLL = EEPROM.get(64, set_luxSOLL); 
+    
+           
+    LCDML.FUNC_setLoopInterval(100);
+    
+    encoder = new ClickEncoder(enc_PinA, enc_PinB, enc_PinC, enc_Step); // den Dreh-Enkoder initialisieren
+    Timer1.initialize(1000);                      // den Interrupt-Timer fuer den Dreh-Enkoder initialisieren
+    Timer1.attachInterrupt(timerIsr);             // und die Interrupt-Funktion festlegen
+
+    lcd.setCursor(0, 0);                
+    lcd.print("Helligkeit");
+    lcd.setCursor(15, 0);                
+    lcd.print("lux");        
+    lcd.setCursor(0, 1);                
+    lcd.print("Innen SOLL:");            
+    }
+
+    if(LCDML.FUNC_loop())           // ****** LOOP *********
+    {  
+    LCDML.FUNC_disableScreensaver();
+      
+    ClickEncoder::Button b = encoder->getButton();
+       
+      if (flag_SAVEluxSOLL == LOW)
+      {        
+        if ((set_luxSOLL < 10) && (set_luxSOLL >= 0))
+        {
+        lcd.setCursor(17, 1);
+        lcd.print(set_luxSOLL);
+        lcd.setCursor(14, 1);
+        lcd.print("   ");
+        }
+          else if ((set_luxSOLL > 9) && (set_luxSOLL < 100))
+          {
+          lcd.setCursor(16, 1);
+          lcd.print(set_luxSOLL);
+          lcd.setCursor(15, 1);
+          lcd.print(" ");
+          }
+            else if ((set_luxSOLL > 99) && (set_luxSOLL < 1000))
+            {
+            lcd.setCursor(15, 1);
+            lcd.print(set_luxSOLL);
+            lcd.setCursor(14, 1);
+            lcd.print(" ");
+            }
+              else
+              {
+              lcd.setCursor(14, 1);
+              lcd.print(set_luxSOLL);
+              }
+      }
+    
+      switch (CASEluxSOLL) 
+      {
+        case 1: //Lux Soll Tageshelligkeit
+                 
+          lcd.setCursor(19, 1);
+          lcd.print("*");       
+    
+          if(flag_luxSOLL == LOW) 
+          {
+          encValue = set_luxSOLL;
+          flag_luxSOLL = HIGH;
+          }
+              
+          set_luxSOLL = encValue;
+      
+          if((set_luxSOLL) < 1) //Wertbegrenzung für luxSOLL [lx] MIN
+          {
+          encValue=0;
+          }    
+          
+          if((set_luxSOLL) > 9990) //Wertbegrenzung für luxSOLL [lx] MAX
+          {
+          encValue=9990;
+          }
+                      
+          if (b != ClickEncoder::Open) 
+          {
+            switch (b) 
+            {                                         
+              case ClickEncoder::Clicked:            
+                EEPROM.put(64, set_luxSOLL);
+                CASEluxSOLL = 2; 
+              break; 
+            }   
+          } 
+        break;  //case '1' Ende * * * * * *
+
+        case 2: //Speicheranimation
+      
+        if(flag_SAVEluxSOLL == LOW) 
+        {
+    
+        LCDML.DISP_clear();
+  
+        for (def = txtMsg25.length() - 1; def >= 0; def--) //for each letter of the string starting from the last one.
+        {
+        startPoint25 = 0;
+             
+          for (abc = 0; abc < endPoint25; abc++) //for each position on the LCD display
+          {
+            lcd.setCursor(startPoint25, 0);
+            lcd.print(txtMsg25[def]);   
+      
+              if (startPoint25 != endPoint25 - 1) 
+              {
+              lcd.setCursor(startPoint25, 0);
+              lcd.print(' ');
+              }
+                            
+            startPoint25++;
+          }
+          
+        endPoint25--;      
+        }
+  
+  
+         for (ghi = txtMsg26.length() - 1; ghi >= 0; ghi--)
+         {
+         startPoint26 = 0;
+     
+          for (jkl = 0; jkl < endPoint26; jkl++)
+          {
+            lcd.setCursor(startPoint26, 2);
+            lcd.print(txtMsg26[ghi]);   
+      
+              if (startPoint26 != endPoint26 - 1) 
+              {
+              lcd.setCursor(startPoint26, 2);
+              lcd.print(' ');
+              }
+              
+            startPoint26++;       
+          }
+          
+         endPoint26--;    
+         }    
+         
+        flag_SAVEluxSOLL = HIGH;
+        }   
+          
+        if (b != ClickEncoder::Open) 
+             {
+             switch (b) 
+               {                                
+                 case ClickEncoder::Clicked:              
+                  LCDML.FUNC_goBackToMenu(1);
+                 break;
+               }   
+             }
+        break;  //case '2' Ende * * * * * 
+      } //switch case Ende * * * * *
+      
+    } // LOOP Ende * * * * * 
+    
+    encValue += encoder->getValue() * ValueStep; 
+    if (encValue != lastValue) 
+    {                       
+    lastValue = encValue; 
+    }
+
+}
+
+
   byte CASEluxBegin = 1;
 
   bool flag_SAVEontime = LOW;  
@@ -1188,8 +1388,8 @@ void mFunc_HystOFF(uint8_t param) //HYSTERESE FÜR AUSSCHALTEN BEI ÜBERSCHREITU
   int startPoint10 = 5;   //set starting point
   int endPoint10 = 17;    //set ending point
   String txtMsg10 = "gespeichert !";
-  int mm, nn;
-  int oo, pp;
+  int mm=0, nn=0;
+  int oo=0, pp=0;
 
 // *********************************************************************
 void mFunc_luxBegin(uint8_t param) //"SONNENAUFGANGSZEIT" UND DAUER DES "SONNENAUFGANGS" + ERR. ENDZEIT
@@ -1233,7 +1433,6 @@ void mFunc_luxBegin(uint8_t param) //"SONNENAUFGANGSZEIT" UND DAUER DES "SONNENA
     lcd.print("err.Endzeit:");
     lcd.setCursor(15, 3);                
     lcd.print(":"); 
-    lcd.setCursor(14, 3);
     }
 
     if(LCDML.FUNC_loop())           // ****** LOOP *********
@@ -1315,12 +1514,12 @@ void mFunc_luxBegin(uint8_t param) //"SONNENAUFGANGSZEIT" UND DAUER DES "SONNENA
         lcd.setCursor(13, 3);
         lcd.print("0");
         }
-          if (estEndtimeH > 23)
+          else if (estEndtimeH > 23)
           {         
           lcd.setCursor(13, 3);
           lcd.print("ee");
           }
-            else 
+            else if ((estEndtimeH >= 10) && (estEndtimeH < 23))
             {
             lcd.setCursor(13, 3);
             lcd.print(estEndtimeH);
@@ -1584,8 +1783,8 @@ void mFunc_luxBegin(uint8_t param) //"SONNENAUFGANGSZEIT" UND DAUER DES "SONNENA
   int startPoint12 = 5;   //set starting point
   int endPoint12 = 17;    //set ending point
   String txtMsg12 = "gespeichert !";
-  int qq, rr;
-  int ss, tt;
+  int qq=0, rr=0;
+  int ss=0, tt=0;
 
 // *********************************************************************
 void mFunc_luxEnd(uint8_t param) //DAUER DER "KÜNSTLICHEN SONNE" UND DAUER DES "SONNENUNTERGANGS" + ERR. ENDZEIT
@@ -1628,8 +1827,7 @@ void mFunc_luxEnd(uint8_t param) //DAUER DER "KÜNSTLICHEN SONNE" UND DAUER DES 
     lcd.setCursor(0, 3);                
     lcd.print("err.Endzeit:");
     lcd.setCursor(15, 3);                
-    lcd.print(":"); 
-    lcd.setCursor(14, 3);              
+    lcd.print(":");               
     }
 
     if(LCDML.FUNC_loop())           // ****** LOOP *********
@@ -1712,12 +1910,12 @@ void mFunc_luxEnd(uint8_t param) //DAUER DER "KÜNSTLICHEN SONNE" UND DAUER DES 
         lcd.setCursor(13, 3);
         lcd.print("0");
         }
-          if (estEndtimeH > 23)
+          else if (estEndtimeH > 23)
           {         
           lcd.setCursor(13, 3);
           lcd.print("ee");
           }
-            else 
+            else if ((estEndtimeH >= 10) && (estEndtimeH < 23))
             {
             lcd.setCursor(13, 3);
             lcd.print(estEndtimeH);

@@ -14,7 +14,6 @@
 #include <DallasTemperature.h>  //Temperatursensor DS18B20
 #include <ErriezBH1750.h> //Luxsensor BH1750
 #include <PID_v1.h> //PID Regler
-#include <Adafruit_MCP4725.h> // DAC MCP4725
 
 // *********************************************************************
 // LCDML display settings
@@ -49,8 +48,6 @@ const uint8_t scroll_bar[5][8] =
 #define enc_PinC 3          // Dreh-Enkoder "Click" an Pin 3
 #define enc_Step 4          // Dreh-Enkoder (Werte pro Dreh-Schritt / je nach Dreh-Enkoder anpassen)
 
-#define DAC_RESOLUTION    (8) // Set this value to 9, 8, 7, 6 or 5  DAC-Auflösung
-
 // *********************************************************************
 // Temperatursensor settings
 // *********************************************************************
@@ -67,6 +64,12 @@ OneWire  tempsens(4);  // on pin 4 (a 4.7K resistor is necessary) Temperatursens
 #define turkeyONOFF_IN4 45
 #define turkey_IN5 47
 #define turkey_IN6 49
+
+// *********************************************************************
+// Lichtsteuerung settings
+// *********************************************************************
+#define lightON_L_IN7 51
+#define lightON_N_IN8 53
 
 // *********************************************************************
 // Prototypes
@@ -105,7 +108,6 @@ int set_barnOffset = EEPROM.get(21, set_barnOffset);
 // *********************************************************************
 // PID Regler
 // *********************************************************************
-const int PIN_OUTPUT = 5; //PWM LED Pin
 double Setpoint = 0, Input = 0, Output = 0;
 double Kp=1, Ki=0.2, Kd=0.05; //Reglerfaktoren
 double dblLuxInnen = 0;
@@ -141,13 +143,27 @@ int set_hystluxOFF = EEPROM.get(54, set_hystluxOFF);
 byte set_hysttimeOFFM = EEPROM.get(56, set_hysttimeOFFM);  
 byte set_hysttimeOFFS = EEPROM.get(57, set_hysttimeOFFS);
 
+int set_luxSOLL = EEPROM.get(64, set_luxSOLL); 
+
 unsigned long HOUR = 0; //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
 unsigned long MIN = 0;  //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
 unsigned long SEC = 0;  //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
 unsigned long timeNow = 0; //aktuelle Tagesuhrzeit in Sekunden  
 
 byte CaseLight = 1;
-byte sunriseStep = 0; //Regelwert für Digitalpotentiometer (bereich 0-255)
+int PIDSunTime = 0; //Wert von 0-1000, entsprechend der Sonnenlichtrampe (0=Dimmstufe niedrig bzw. aus, 1000 = Sollwert LUX Tag)
+double fSunPID = 0; // PIDSunTime / 1000,      Gleitkommawert zwischen 0,000 und 1,000    wird als PID Sollwert verwendet
+double fPIDsollwert = 0; // Sollwert für PID Regler (Sollwert Tageshelligkeit[lx] * fPotiSunPID)
+
+
+bool flag_luxPIDon = LOW;
+bool flag_PID_ON = LOW;
+bool flag_sunrise = LOW;
+bool flag_sunset = LOW;
+bool flag_lux_PIDoff = LOW;
+unsigned long luxPIDon_millis= 0; 
+unsigned long luxPIDoff_millis= 0;
+   
 
 // *********************************************************************
 // Torsteuerung
@@ -159,8 +175,8 @@ int set_doorsCloseLux = EEPROM.get(60, set_doorsCloseLux);
 byte set_doorsCloseM = EEPROM.get(62, set_doorsCloseM);  
 byte set_doorsCloseS = EEPROM.get(63, set_doorsCloseS);
 
-unsigned long doorsOpenTimeSEC;
-unsigned long doorsCloseDelaytimeMILLISEC;
+unsigned long doorsOpenTimeSEC= 0;
+unsigned long doorsCloseDelaytimeMILLISEC= 0;
 
 byte CaseDoorsOpenClose = 1;
 bool TorAuf = HIGH;
@@ -170,11 +186,11 @@ bool flag_doorsOpen = LOW;
 bool flag_doorsClose = LOW;
 bool flag_relaisTOF = LOW;
 unsigned long DoorsRelaisHoldTimeMillis = 15000;//300000; //Abfallverzögerung für Auf/Zu-Relais in Millisekunden
-unsigned long TorAuf_millis;
-unsigned long TorZuDelay_millis;
-unsigned long TorZu_millis;
-unsigned long relais_TONTOF = 1000; //Ein-/Ausschaltverzögerung für Relais 1 und 4 (Ein/Ausschalter für Torantriebe)
-unsigned long relaisTOF_millis;
+unsigned long TorAuf_millis = 0;
+unsigned long TorZuDelay_millis= 0;
+unsigned long TorZu_millis= 0;
+unsigned long relais_TONTOF = 1000; //Ein-/Ausschaltverzögerung für Relais 1 und 4 (Ein/Ausschalter für Torantriebe) in Millisekunden
+unsigned long relaisTOF_millis= 0;
    
 // *********************************************************************
 // Objects
@@ -187,46 +203,6 @@ ClickEncoder *encoder;      // Dreh-Enkoder mit Klickbutton
 BH1750 HelligkeitInnen(HIGH); // ADDR line LOW/open:  I2C address 0x23 (0x46 including R/W bit) [default]
 BH1750 HelligkeitAussen(LOW); // ADDR line HIGH:      I2C address 0x5C (0xB8 including R/W bit)
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT); //PID Regler
-Adafruit_MCP4725 dac; //DAC
-
-// *********************************************************************
-//DAC
-// *********************************************************************
-const PROGMEM uint16_t DACLookup_FullSine_8Bit[256] =
-{
-  2048, 2098, 2148, 2198, 2248, 2298, 2348, 2398,
-  2447, 2496, 2545, 2594, 2642, 2690, 2737, 2784,
-  2831, 2877, 2923, 2968, 3013, 3057, 3100, 3143,
-  3185, 3226, 3267, 3307, 3346, 3385, 3423, 3459,
-  3495, 3530, 3565, 3598, 3630, 3662, 3692, 3722,
-  3750, 3777, 3804, 3829, 3853, 3876, 3898, 3919,
-  3939, 3958, 3975, 3992, 4007, 4021, 4034, 4045,
-  4056, 4065, 4073, 4080, 4085, 4089, 4093, 4094,
-  4095, 4094, 4093, 4089, 4085, 4080, 4073, 4065,
-  4056, 4045, 4034, 4021, 4007, 3992, 3975, 3958,
-  3939, 3919, 3898, 3876, 3853, 3829, 3804, 3777,
-  3750, 3722, 3692, 3662, 3630, 3598, 3565, 3530,
-  3495, 3459, 3423, 3385, 3346, 3307, 3267, 3226,
-  3185, 3143, 3100, 3057, 3013, 2968, 2923, 2877,
-  2831, 2784, 2737, 2690, 2642, 2594, 2545, 2496,
-  2447, 2398, 2348, 2298, 2248, 2198, 2148, 2098,
-  2048, 1997, 1947, 1897, 1847, 1797, 1747, 1697,
-  1648, 1599, 1550, 1501, 1453, 1405, 1358, 1311,
-  1264, 1218, 1172, 1127, 1082, 1038,  995,  952,
-   910,  869,  828,  788,  749,  710,  672,  636,
-   600,  565,  530,  497,  465,  433,  403,  373,
-   345,  318,  291,  266,  242,  219,  197,  176,
-   156,  137,  120,  103,   88,   74,   61,   50,
-    39,   30,   22,   15,   10,    6,    2,    1,
-     0,    1,    2,    6,   10,   15,   22,   30,
-    39,   50,   61,   74,   88,  103,  120,  137,
-   156,  176,  197,  219,  242,  266,  291,  318,
-   345,  373,  403,  433,  465,  497,  530,  565,
-   600,  636,  672,  710,  749,  788,  828,  869,
-   910,  952,  995, 1038, 1082, 1127, 1172, 1218,
-  1264, 1311, 1358, 1405, 1453, 1501, 1550, 1599,
-  1648, 1697, 1747, 1797, 1847, 1897, 1947, 1997
-};
 
 // *********************************************************************
 //Clickencoder für Werteverstellung
@@ -271,21 +247,22 @@ LCDML_add         (11 , LCDML_0_4_3      , 3  , "Zurueck"            , mFunc_bac
 LCDML_add         (12 , LCDML_0_4        , 4  , "Temperatur Offset"  , mFunc_tempOffset);        // "temperature" tab
 LCDML_add         (13 , LCDML_0_4        , 5  , "Energiesparmodus"   , mFunc_screensaverSetup);  // "menuFunction" tab
 LCDML_add         (14 , LCDML_0_4        , 6  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
-LCDML_add         (15 , LCDML_0_4_2      , 1  , "Zeiten"             , NULL);                    
-LCDML_add         (16 , LCDML_0_4_2_1    , 1  , "Startzeit"          , mFunc_luxBegin);          // "light" tab
-LCDML_add         (17 , LCDML_0_4_2_1    , 2  , "Tages- + Endzeit"   , mFunc_luxEnd);            // "light" tab
-LCDML_add         (18 , LCDML_0_4_2_1    , 3  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
-LCDML_add         (19 , LCDML_0_4_2      , 2  , "Hysteresen"         , NULL);                    
-LCDML_add         (20 , LCDML_0_4_2_2    , 1  , "Hysterese Ein"      , mFunc_HystON);            // "light" tab
-LCDML_add         (21 , LCDML_0_4_2_2    , 2  , "Hysterese Aus"      , mFunc_HystOFF);           // "light" tab
-LCDML_add         (22 , LCDML_0_4_2_2    , 3  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
-LCDML_add         (23 , LCDML_0_4_2      , 3  , "Regler"             , mFunc_luxPID);            // "light" tab
-LCDML_add         (24 , LCDML_0_4_2      , 4  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
-LCDML_add         (25 , LCDML_0          , 5  , "Info"               , mFunc_info);              // "menuFunction" tab
-LCDML_add         (26 , LCDML_0          , 6  , "Energiesparmodus"   , mFunc_screensaver);       // "menuFunction" tab
+LCDML_add         (15 , LCDML_0_4_2      , 1  , "Helligkeit"         , mFunc_luxSOLL);           // 
+LCDML_add         (16 , LCDML_0_4_2      , 2  , "Zeiten"             , NULL);                    
+LCDML_add         (17 , LCDML_0_4_2_2    , 1  , "Startzeit"          , mFunc_luxBegin);          // "light" tab
+LCDML_add         (18 , LCDML_0_4_2_2    , 2  , "Tages- + Endzeit"   , mFunc_luxEnd);            // "light" tab
+LCDML_add         (19 , LCDML_0_4_2_2    , 3  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
+LCDML_add         (20 , LCDML_0_4_2      , 3  , "Hysteresen"         , NULL);                    
+LCDML_add         (21 , LCDML_0_4_2_3    , 1  , "Hysterese Ein"      , mFunc_HystON);            // "light" tab
+LCDML_add         (22 , LCDML_0_4_2_3    , 2  , "Hysterese Aus"      , mFunc_HystOFF);           // "light" tab
+LCDML_add         (23 , LCDML_0_4_2_3    , 3  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
+LCDML_add         (24 , LCDML_0_4_2      , 4  , "Regler"             , mFunc_luxPID);            // "light" tab
+LCDML_add         (25 , LCDML_0_4_2      , 5  , "Zurueck"            , mFunc_back);              // "menuFunction" tab
+LCDML_add         (26 , LCDML_0          , 5  , "Info"               , mFunc_info);              // "menuFunction" tab
+LCDML_add         (27 , LCDML_0          , 6  , "Energiesparmodus"   , mFunc_screensaver);       // "menuFunction" tab
 
 // this value must be the same as the last menu element
-#define _LCDML_DISP_cnt    26
+#define _LCDML_DISP_cnt    27
 
 // create menu
 LCDML_createMenu(_LCDML_DISP_cnt);
@@ -330,13 +307,7 @@ void setup()
   rtc.writeProtect(false);
 
   //PID * * * * *
-  Input = double(luxInnen/2);
-  Setpoint = 80; 
   myPID.SetMode(AUTOMATIC); //turn the PID on
-  pinMode(PIN_OUTPUT, OUTPUT);
-
-  //DAC * * * * * 
-  dac.begin(0x62); // For Adafruit MCP4725A1 the address is 0x62 (default) or 0x63 (ADDR pin tied to VCC)
 
   //Torsteuerung * * * * *
   pinMode(chickenONOFF_IN1, OUTPUT);
@@ -352,6 +323,12 @@ void setup()
   digitalWrite(turkeyONOFF_IN4, HIGH);
   digitalWrite(turkey_IN5, HIGH);
   digitalWrite(turkey_IN6, HIGH);
+
+  //Lichtsteuerung * * * * *
+  pinMode(lightON_L_IN7, OUTPUT);
+  pinMode(lightON_N_IN8, OUTPUT);
+  digitalWrite(lightON_L_IN7, HIGH);
+  digitalWrite(lightON_N_IN8, HIGH);
 
 }
 
@@ -377,20 +354,7 @@ void loop()
   }   
 
   
-  //PID
-  dblLuxInnen = double(luxInnen);
-
-  Input = dblLuxInnen/2; 
   
-  myPID.SetTunings(set_PIDkp, set_PIDki, set_PIDkd);
-
-  myPID.SetSampleTime(set_pidSampletime); 
-  
-  myPID.Compute();
- 
-  analogWrite(PIN_OUTPUT, Output);
-  
-
   //Lichtsteuerung 
   
   unsigned long starttimeHOUR = (unsigned long) set_starttimeH * 3600;
@@ -401,50 +365,114 @@ void loop()
   unsigned long startdurationMIN = (unsigned long) set_startdurationM * 60;
   unsigned long startdurationSEC = startdurationHOUR + startdurationMIN; //Eingestellte Dauer des "Sonnenaufgangs" (Dauer 0-100% Leuchtkraft)
 
-  unsigned long startdurationEND = starttimeSEC + startdurationSEC;
+  unsigned long startdurationEND = starttimeSEC + startdurationSEC; //Uhrzeit Ende Sonnenaufgang, Beginn Sonnentag
 
-  //unsigned long sunriseStep = (timeNow - starttimeSEC) * (255 - 0) / startdurationSEC;
+  unsigned long suntimeHOUR = (unsigned long) set_suntimeH * 3600;  
+  unsigned long suntimeMIN = (unsigned long) set_suntimeM * 60;   
+  unsigned long suntimeSEC = suntimeHOUR + suntimeMIN; //Eingestellte Dauer des "Sonnentages" 
+    
+  unsigned long enddurationHOUR = (unsigned long) set_enddurationH * 3600;
+  unsigned long enddurationMIN = (unsigned long) set_enddurationM * 60;
+  unsigned long enddurationSEC = enddurationHOUR + enddurationMIN; //Eingestellte Dauer des "Sonnenuntergangs" (Dauer 100-0% Leuchtkraft)  
+    
+  unsigned long enddurationSTART = startdurationEND + suntimeSEC; //Uhrzeit Ende Sonnentag, Beginn Sonnenuntergang
+  unsigned long endtime = enddurationSTART + enddurationSEC; //Uhreit Ende Sonnenuntergang
 
-  
-  Serial.print("STEPS    ");
-  Serial.println(sunriseStep);
-  Serial.print("TIME    ");
-  Serial.println(timeNow);
+  unsigned long hysttimeOnMIN = (unsigned long) set_hysttimeONM * 60;
+  unsigned long hysttimeOnSEC = hysttimeOnMIN + (unsigned long) set_hysttimeONS; //Eingestellte Hysteresenwartezeit für "Licht EIN"
 
-  switch (CaseLight)
-  {
-    case 1: //Sonnenaufgang
+  unsigned long hysttimeOffMIN = (unsigned long) set_hysttimeOFFM * 60;
+  unsigned long hysttimeOffSEC = hysttimeOffMIN + (unsigned long) set_hysttimeOFFS; //Eingestellte Hysteresenwartezeit für "Licht AUS"
 
-    if((timeNow > starttimeSEC) && (timeNow < startdurationEND))
-    {
-    sunriseStep = map(timeNow, starttimeSEC, startdurationEND, 15, 177); //Poti 8-Bit Auflösung, 1 Step = 192,3125 OHM
-    //Lampe MIN Leuchtkraft bei 3,1kOhm, MAX Leuchtkraft bei 34,7kOhm, daraus ergeben sich der Startwert 15 und Endwert 177   
-    }
-    else
-    {
-    sunriseStep = 255;
-    }
-    break; //case 1 ENDE
+  if((timeNow >= starttimeSEC) && (timeNow <= startdurationEND)) //SONNENAUFGANG (0-100% Leuchtkraft, linear geregelt)
+  {Serial.println("ON"); 
+  PIDSunTime = map(timeNow, starttimeSEC, startdurationEND, 0, 1000); 
+  fSunPID = (double) PIDSunTime / 1000;
+  fPIDsollwert = fSunPID * (double) set_luxSOLL;
+  flag_sunrise = HIGH;
   }
+    else if((timeNow > startdurationEND) && (timeNow <= enddurationSTART)) //SONNENTAG (Bei Bedarf[Dunkelheit]: Erhalten der Eingestellten minimalen Helligkeit)
+    {Serial.println("DAY"); 
+      flag_sunrise = LOW;
+           
+      if ((luxInnen/2 < (set_luxSOLL - set_hystluxON)) && flag_luxPIDon == LOW) // Hysterese Lichtregelung EIN
+      {
+      luxPIDon_millis = millis();
+      flag_luxPIDon = HIGH;    
+      }
+      
+      if (luxInnen/2 > (set_luxSOLL - set_hystluxON) && flag_PID_ON == LOW) // Hysterese Lichtregelung EIN
+      {
+      flag_luxPIDon = LOW;
+      }
 
+      if((millis() > (hysttimeOnSEC * 1000 + luxPIDon_millis)) && flag_luxPIDon == HIGH && flag_PID_ON == LOW)  // Licht EIN (mit PID Regler)
+      { 
+      fPIDsollwert = (double) set_luxSOLL;
+      flag_PID_ON = HIGH; 
+      }
+
+      if (luxInnen/2 > (set_luxSOLL + set_hystluxOFF) && flag_PID_ON == HIGH && flag_lux_PIDoff == LOW) // Hysterese Lichtregelung AUS
+      {
+      luxPIDoff_millis = millis();
+      flag_lux_PIDoff = HIGH;      
+      }
+
+      if (luxInnen/2 < (set_luxSOLL + set_hystluxON) && flag_PID_ON == HIGH) // Hysterese Lichtregelung AUS
+      {
+      flag_lux_PIDoff = LOW;
+      }
+
+      if((millis() > (hysttimeOffSEC * 1000 + luxPIDoff_millis)) && flag_lux_PIDoff == HIGH && flag_PID_ON == HIGH)  // Licht AUS
+      { 
+      flag_PID_ON = HIGH; 
+      }
+    }
+      else if((timeNow > enddurationSTART) && (timeNow < endtime )) //SONNENUNTERGANG (100-0% Leuchtkraft, linear geregelt)      
+      {Serial.println("OFF"); 
+      PIDSunTime = map(timeNow, enddurationSTART, endtime, 1000, 0); 
+      fSunPID = (double) PIDSunTime / 1000;
+      fPIDsollwert = fSunPID * (double) set_luxSOLL;
+      flag_sunset = HIGH;       
+      }   
+        else
+        {Serial.println("NIGHTSHIFT");
+        flag_sunrise = LOW;
+        flag_PID_ON = LOW;
+        flag_sunset = LOW;  
+        }
+  if(flag_sunrise == HIGH || flag_PID_ON == HIGH || flag_sunset == HIGH)
+  {
+  digitalWrite(lightON_L_IN7, LOW);
+  digitalWrite(lightON_N_IN8, LOW);
+  Input = (double) luxInnen/2; //Messeingang für Regler
+  Setpoint = fPIDsollwert; //Sollwert für Regler 
+  myPID.SetTunings(set_PIDkp, set_PIDki, set_PIDkd); //Reglerfaktoren
+  //myPID.SetTunings(0.08, 0.02, 0.00); //Reglerfaktoren
+  myPID.SetSampleTime(set_pidSampletime); //Regler Taktrate 
+  myPID.Compute(); // PID Regler ausführen
+  Serial.print("OUTPUT :::::::   ");
+  Serial.println(Output);
+  int PotiInput = map((int)Output, 0, 255, 15, 177);
   Wire.beginTransmission(0x2C);
   Wire.write(byte(0x00)); //sends instruction byte  
-  Wire.write(sunriseStep);
+  Wire.write(PotiInput);
   Wire.endTransmission();
- 
   
-  
+  Serial.print("PotiINPUT      ");
+  Serial.println(PotiInput);
+  Serial.print("OUTPUT      ");
+  Serial.println(Output);
+  Serial.println(fPIDsollwert);
+  }
+    else
+    {
+    digitalWrite(lightON_L_IN7, HIGH);
+    digitalWrite(lightON_N_IN8, HIGH);
+    
+    }
 
 
-
-
-
-
-
-
-  //DAC - Digital Analog Converter 0-10VDC ANM.: *25 Skalierungsfaktor für Ausgangsspannung, false: Wert nicht in EEPROM speichern
-  dac.setVoltage((uint16_t(Output)*25), false);
-  
 
   //Torsteuerung
   t = rtc.getTime();
@@ -463,14 +491,14 @@ void loop()
   
       flag_doorsClose = LOW;
         
-      if ((timeNow >= doorsOpenTimeSEC) && flag_doorsOpen == LOW)
+      if ((timeNow >= doorsOpenTimeSEC) && flag_doorsOpen == LOW) // Tor öffnen
       {
-      TorAuf = LOW; // Tor öffnen
+      TorAuf = LOW; 
       TorAuf_millis = millis();
       flag_doorsOpen = HIGH;
       }
 
-      if((millis() > (DoorsRelaisHoldTimeMillis + TorAuf_millis)) && flag_doorsOpen == HIGH)  
+      if((millis() > (DoorsRelaisHoldTimeMillis + TorAuf_millis)) && flag_doorsOpen == HIGH) //Abfallverzögerung Relais  
       {
       TorAuf = HIGH; 
       relaisTOF_millis = millis();            
@@ -482,25 +510,25 @@ void loop()
         
         flag_doorsOpen = LOW;
         
-        if ((luxAussen/2 < set_doorsCloseLux) && flag_closeMillis == LOW)
+        if ((luxAussen/2 < set_doorsCloseLux) && flag_closeMillis == LOW) // Hysterese Tor schließen
         {
         TorZuDelay_millis = millis();
         flag_closeMillis = HIGH;    
         }
         
-        if (luxAussen/2 > set_doorsCloseLux)
+        if (luxAussen/2 > set_doorsCloseLux) // Hysterese Tor schließen
         {
         flag_closeMillis = LOW;
         }
          
-        if((millis() > (doorsCloseDelaytimeMILLISEC + TorZuDelay_millis)) && flag_doorsClose == LOW && flag_closeMillis == HIGH)  
+        if((millis() > (doorsCloseDelaytimeMILLISEC + TorZuDelay_millis)) && flag_doorsClose == LOW && flag_closeMillis == HIGH)  // Tor schließen
         {
-        TorZu = LOW; // Tor schließen
+        TorZu = LOW; 
         TorZu_millis = millis();
         flag_doorsClose = HIGH;
         }
   
-        if(millis() > (DoorsRelaisHoldTimeMillis + TorZu_millis) && flag_doorsClose == HIGH)  
+        if(millis() > (DoorsRelaisHoldTimeMillis + TorZu_millis) && flag_doorsClose == HIGH) //Abfallverzögerung Relais    
         {
         TorZu = HIGH;
           if(flag_relaisTOF == LOW)
@@ -518,9 +546,9 @@ void loop()
     }
 
 
-    // WICHTIG!!!! : Ansteuerung vom Relaismodul funktioniert nur invertiert (LOW = 1, HIGH = 0)
+    //Relais Ansteuerung zur Verhinderung von Kontaktüberschneidungen. Das "+" schaltende Relais wird immer als erstes ausgeschalten, bzw. als letztes eingeschalten.
     
-    if(CaseDoorsOpenClose == 1 && TorAuf == HIGH)
+    if(CaseDoorsOpenClose == 1 && TorAuf == HIGH) //Relais Tor AUF - Ausschalten 
     {
     digitalWrite(chickenONOFF_IN1, HIGH);
     digitalWrite(turkeyONOFF_IN4, HIGH);         
@@ -532,7 +560,7 @@ void loop()
       digitalWrite(turkey_IN6, HIGH);
       }   
     }   
-      else if(CaseDoorsOpenClose == 1 && TorAuf == LOW)
+      else if(CaseDoorsOpenClose == 1 && TorAuf == LOW) //Relais Tor AUF - EINschalten 
       {      
       digitalWrite(chicken_IN2, HIGH);
       digitalWrite(chicken_IN3, HIGH);        
@@ -545,7 +573,7 @@ void loop()
         }
       }
 
-    if(CaseDoorsOpenClose == 2 && TorZu == HIGH)
+    if(CaseDoorsOpenClose == 2 && TorZu == HIGH) //Relais Tor ZU - Ausschalten 
     {
     digitalWrite(chickenONOFF_IN1, HIGH);
     digitalWrite(turkeyONOFF_IN4, HIGH);         
@@ -557,7 +585,7 @@ void loop()
       digitalWrite(turkey_IN6, HIGH);
       }   
     }  
-      else if(CaseDoorsOpenClose == 2 && TorZu == LOW)
+      else if(CaseDoorsOpenClose == 2 && TorZu == LOW) //Relais Tor ZU - Einschalten 
       {
       digitalWrite(chicken_IN2, LOW);
       digitalWrite(chicken_IN3, LOW);  

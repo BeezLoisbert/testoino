@@ -12,8 +12,8 @@
   int startPoint18 = 5;   //set starting point
   int endPoint18 = 17;    //set ending point
   String txtMsg18 = "gespeichert !";
-  int ccc, ddd;
-  int eee, fff;
+  int ccc=0, ddd=0;
+  int eee=0, fff=0;
 
 // *********************************************************************
 void mFunc_doors(uint8_t param) //UHRZEIT FÜR ÖFFNUNG DER TORE
@@ -250,8 +250,8 @@ void mFunc_doors(uint8_t param) //UHRZEIT FÜR ÖFFNUNG DER TORE
   int startPoint20 = 5;   //set starting point
   int endPoint20 = 17;    //set ending point
   String txtMsg20 = "gespeichert !";
-  int ggg, hhh;
-  int iii, jjj;
+  int ggg=0, hhh=0;
+  int iii=0, jjj=0;
 
 // *********************************************************************
 void mFunc_Hystdoors(uint8_t param) //HYSTERESE FÜR TORSCHLIESSUNG (UNTERSCHREITUNG VON X-LUX + WARTEZEIT)
