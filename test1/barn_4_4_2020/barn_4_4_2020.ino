@@ -163,6 +163,11 @@ bool flag_sunset = LOW;
 bool flag_lux_PIDoff = LOW;
 unsigned long luxPIDon_millis= 0; 
 unsigned long luxPIDoff_millis= 0;
+
+double mapDoubleClamped(double x, double in_min, double in_max, double out_min, double out_max);
+double rampDaytime(uint32_t now_sec, uint32_t sunriseStart_sec, uint32_t sunriseEnd_sec, uint32_t sunsetStart_sec, uint32_t sunsetEnd_sec);
+
+uint32_t gNow_sec = 0;
    
 
 // *********************************************************************
@@ -274,6 +279,7 @@ void setup()
   Wire.begin(); // Initialize I2C bus
   lcd.init(); //LCD initialisieren
   lcd.backlight(); //LCD Licht EIN
+  Serial.println("Input Output fPIDsollwert");
 
   // Lux Sensor * * * * *
   HelligkeitInnen.begin(ModeContinuous, ResolutionHigh); // Initialize sensor in continues mode, high 0.5 lx resolution
@@ -330,6 +336,10 @@ void setup()
   digitalWrite(lightON_L_IN7, HIGH);
   digitalWrite(lightON_N_IN8, HIGH);
 
+
+
+    
+    
 }
 
 
@@ -384,17 +394,23 @@ void loop()
   unsigned long hysttimeOffMIN = (unsigned long) set_hysttimeOFFM * 60;
   unsigned long hysttimeOffSEC = hysttimeOffMIN + (unsigned long) set_hysttimeOFFS; //Eingestellte Hysteresenwartezeit für "Licht AUS"
 
-  if((timeNow >= starttimeSEC) && (timeNow <= startdurationEND)) //SONNENAUFGANG (0-100% Leuchtkraft, linear geregelt)
-  {Serial.println("ON"); 
-  PIDSunTime = map(timeNow, starttimeSEC, startdurationEND, 0, 1000); 
-  fSunPID = (double) PIDSunTime / 1000;
-  fPIDsollwert = fSunPID * (double) set_luxSOLL;
-  flag_sunrise = HIGH;
+  gNow_sec = (uint32_t)timeNow;
+
+  double ramp = rampDaytime(gNow_sec, starttimeSEC, startdurationEND, enddurationSTART, endtime); // floating Value 0.00-1.00
+
+  if ((gNow_sec < starttimeSEC) || (gNow_sec > endtime)) // NACHT
+  {
+    fPIDsollwert = 0;
+    Serial.print("NACHT");
   }
-    else if((timeNow > startdurationEND) && (timeNow <= enddurationSTART)) //SONNENTAG (Bei Bedarf[Dunkelheit]: Erhalten der Eingestellten minimalen Helligkeit)
-    {Serial.println("DAY"); 
-      flag_sunrise = LOW;
-           
+  else if (gNow_sec < startdurationEND) // SONNENAUFGANG
+  {
+    fPIDsollwert = ramp * (double)set_luxSOLL;
+    flag_sunrise = HIGH;
+    Serial.print("SUNRISE");
+  }
+  else if (gNow_sec < enddurationSTART) // TAG
+  {Serial.print("TAG");
       if ((luxInnen/2 < (set_luxSOLL - set_hystluxON)) && flag_luxPIDon == LOW) // Hysterese Lichtregelung EIN
       {
       luxPIDon_millis = millis();
@@ -408,7 +424,7 @@ void loop()
 
       if((millis() > (hysttimeOnSEC * 1000 + luxPIDon_millis)) && flag_luxPIDon == HIGH && flag_PID_ON == LOW)  // Licht EIN (mit PID Regler)
       { 
-      fPIDsollwert = (double) set_luxSOLL;
+      fPIDsollwert = (double)set_luxSOLL;
       flag_PID_ON = HIGH; 
       }
 
@@ -427,20 +443,20 @@ void loop()
       { 
       flag_PID_ON = HIGH; 
       }
-    }
-      else if((timeNow > enddurationSTART) && (timeNow < endtime )) //SONNENUNTERGANG (100-0% Leuchtkraft, linear geregelt)      
-      {Serial.println("OFF"); 
-      PIDSunTime = map(timeNow, enddurationSTART, endtime, 1000, 0); 
-      fSunPID = (double) PIDSunTime / 1000;
-      fPIDsollwert = fSunPID * (double) set_luxSOLL;
-      flag_sunset = HIGH;       
-      }   
-        else
-        {Serial.println("NIGHTSHIFT");
-        flag_sunrise = LOW;
-        flag_PID_ON = LOW;
-        flag_sunset = LOW;  
-        }
+  }
+  else
+  {
+    fPIDsollwert = ramp * (double) set_luxSOLL; //SONNENUNTERGANG
+    flag_sunset = HIGH;
+    Serial.print("SUNSET");
+  }
+    Serial.print(Input);
+    Serial.print(","); 
+    Serial.print(Output);
+    Serial.print(",");
+    Serial.println(fPIDsollwert);
+   
+      
   if(flag_sunrise == HIGH || flag_PID_ON == HIGH || flag_sunset == HIGH)
   {
   digitalWrite(lightON_L_IN7, LOW);
@@ -448,30 +464,20 @@ void loop()
   Input = (double) luxInnen/2; //Messeingang für Regler
   Setpoint = fPIDsollwert; //Sollwert für Regler 
   myPID.SetTunings(set_PIDkp, set_PIDki, set_PIDkd); //Reglerfaktoren
-  //myPID.SetTunings(0.08, 0.02, 0.00); //Reglerfaktoren
+  //myPID.SetTunings(set_PIDkp, set_PIDki, 0.005); //Reglerfaktoren
   myPID.SetSampleTime(set_pidSampletime); //Regler Taktrate 
   myPID.Compute(); // PID Regler ausführen
-  Serial.print("OUTPUT :::::::   ");
-  Serial.println(Output);
   int PotiInput = map((int)Output, 0, 255, 15, 177);
   Wire.beginTransmission(0x2C);
   Wire.write(byte(0x00)); //sends instruction byte  
   Wire.write(PotiInput);
   Wire.endTransmission();
-  
-  Serial.print("PotiINPUT      ");
-  Serial.println(PotiInput);
-  Serial.print("OUTPUT      ");
-  Serial.println(Output);
-  Serial.println(fPIDsollwert);
   }
     else
     {
     digitalWrite(lightON_L_IN7, HIGH);
-    digitalWrite(lightON_N_IN8, HIGH);
-    
+    digitalWrite(lightON_N_IN8, HIGH);  
     }
-
 
 
   //Torsteuerung

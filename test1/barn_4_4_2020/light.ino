@@ -1,4 +1,49 @@
 
+// Maps x to a value between out_min and out_max. When x exceeds the limits defined by in_min/in_max the value is clamped.
+double mapDoubleClamped(double x, double in_min, double in_max, double out_min, double out_max)
+{
+  double result;
+  if (x > in_max)
+  {
+    result = out_max;
+  }
+  else if (x < in_min)
+  {
+    result = out_min;
+  }
+  else
+  {
+    result = (((x - in_min) * (out_max - out_min)) / (in_max - in_min)) + out_min;
+  }
+  
+  return result;
+}
+
+
+
+
+double rampDaytime(uint32_t now_sec, uint32_t sunriseStart_sec, uint32_t sunriseEnd_sec, uint32_t sunsetStart_sec, uint32_t sunsetEnd_sec)
+{
+  double result;
+  if ((now_sec < sunriseStart_sec) || (now_sec > sunsetEnd_sec))
+  {
+    result = 0;
+  }
+  else if (now_sec < sunriseEnd_sec)
+  {
+    result = mapDoubleClamped((double)now_sec, (double)sunriseStart_sec, (double)sunriseEnd_sec, 0, 1);
+  }
+  else if (now_sec < sunsetStart_sec)
+  {
+    result = 1;
+  }
+  else
+  {
+    result = mapDoubleClamped((double)now_sec, (double)sunsetStart_sec, (double)sunsetEnd_sec, 1, 0);
+  }
+
+  return result;
+}
 
 // *********************************************************************
 void mFunc_lux(uint8_t param)  //AKTUELLE SENSORWERTE LICHT AUSSEN UND LICHT INNEN
