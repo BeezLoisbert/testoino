@@ -20,8 +20,7 @@ double mapDoubleClamped(double x, double in_min, double in_max, double out_min, 
 }
 
 
-
-
+//Scales daytime to a floating value between 0.00 - 1.00 (night - sunrise - day - sunset)
 double rampDaytime(uint32_t now_sec, uint32_t sunriseStart_sec, uint32_t sunriseEnd_sec, uint32_t sunsetStart_sec, uint32_t sunsetEnd_sec)
 {
   double result;
@@ -51,7 +50,7 @@ void mFunc_lux(uint8_t param)  //AKTUELLE SENSORWERTE LICHT AUSSEN UND LICHT INN
 {
   if(LCDML.FUNC_setup())          // ****** SETUP *********
   {    
-  LCDML.FUNC_disableScreensaver();
+  //LCDML.FUNC_disableScreensaver();
     
   LCDML.FUNC_setLoopInterval(100);  // starts a trigger event for the loop function every 100 milliseconds
   encoder = new ClickEncoder(enc_PinA, enc_PinB, enc_PinC, enc_Step); // den Dreh-Enkoder initialisieren
@@ -197,7 +196,7 @@ void mFunc_luxPID(uint8_t param) //PID REGLERPARAMETER FÜR LICHTSTEUERUNG
 
     if(LCDML.FUNC_loop())           // ****** LOOP *********
     {  
-    LCDML.FUNC_disableScreensaver();
+    //LCDML.FUNC_disableScreensaver();
       
     ClickEncoder::Button b = encoder->getButton();
        
@@ -652,7 +651,7 @@ void mFunc_HystON(uint8_t param) //HYSTERESE FÜR EINSCHALTEN BEI UNTERSCHREITUN
 
     if(LCDML.FUNC_loop())           // ****** LOOP *********
     {  
-    LCDML.FUNC_disableScreensaver();
+    //LCDML.FUNC_disableScreensaver();
       
     ClickEncoder::Button b = encoder->getButton();
        
@@ -966,7 +965,7 @@ void mFunc_HystOFF(uint8_t param) //HYSTERESE FÜR AUSSCHALTEN BEI ÜBERSCHREITU
 
     if(LCDML.FUNC_loop())           // ****** LOOP *********
     {  
-    LCDML.FUNC_disableScreensaver();
+    //LCDML.FUNC_disableScreensaver();
       
     ClickEncoder::Button b = encoder->getButton();
        
@@ -1272,7 +1271,7 @@ void mFunc_luxSOLL(uint8_t param) //SOLLWERT FÜR TAGESHELLIGKEIT
 
     if(LCDML.FUNC_loop())           // ****** LOOP *********
     {  
-    LCDML.FUNC_disableScreensaver();
+    //LCDML.FUNC_disableScreensaver();
       
     ClickEncoder::Button b = encoder->getButton();
        
@@ -1482,7 +1481,7 @@ void mFunc_luxBegin(uint8_t param) //"SONNENAUFGANGSZEIT" UND DAUER DES "SONNENA
 
     if(LCDML.FUNC_loop())           // ****** LOOP *********
     {  
-    LCDML.FUNC_disableScreensaver();
+    //LCDML.FUNC_disableScreensaver();
 
     timeOverflow();
       
@@ -1877,7 +1876,7 @@ void mFunc_luxEnd(uint8_t param) //DAUER DER "KÜNSTLICHEN SONNE" UND DAUER DES 
 
     if(LCDML.FUNC_loop())           // ****** LOOP *********
     {  
-    LCDML.FUNC_disableScreensaver();
+    //LCDML.FUNC_disableScreensaver();
 
     timeOverflow();
       

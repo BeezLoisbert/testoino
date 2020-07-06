@@ -97,13 +97,13 @@ const int writeTime = 5000; // Zeit in Millisekunden, nach der ein geaenderter W
 // *********************************************************************
 // // Lux Sensor & Lichtsteuerung
 // *********************************************************************
-uint16_t luxInnen = 0;
-uint16_t luxAussen = 0;
+uint16_t luxInnen = 0; //Helligkeit Stall
+uint16_t luxAussen = 0; //Helligkeit Außen
 
 // *********************************************************************
 // Temperatur Sensor
 // *********************************************************************
-int set_barnOffset = EEPROM.get(21, set_barnOffset);   
+int set_barnOffset = EEPROM.get(21, set_barnOffset); // Temperaturoffset
 
 // *********************************************************************
 // PID Regler
@@ -111,50 +111,46 @@ int set_barnOffset = EEPROM.get(21, set_barnOffset);
 double Setpoint = 0, Input = 0, Output = 0;
 double Kp=1, Ki=0.2, Kd=0.05; //Reglerfaktoren
 double dblLuxInnen = 0;
-double set_PIDkp = EEPROM.get(30, set_PIDkp);   
-double set_PIDki = EEPROM.get(34, set_PIDki);   
-double set_PIDkd = EEPROM.get(38, set_PIDkd);   
-int set_pidSampletime = EEPROM.get(28, set_pidSampletime); 
+double set_PIDkp = EEPROM.get(30, set_PIDkp); //Reglerfaktor P 
+double set_PIDki = EEPROM.get(34, set_PIDki); //Reglerfaktor I
+double set_PIDkd = EEPROM.get(38, set_PIDkd); //Reglerfaktor D
+int set_pidSampletime = EEPROM.get(28, set_pidSampletime); //Regler Taktrate
 double Faktor = 100; // Hilfsvariable für Schrittgöße Encoder
 
 // *********************************************************************
 // Lichtsteuerung
 // *********************************************************************
-byte set_starttimeH = EEPROM.get(42, set_starttimeH);   
-byte set_starttimeM = EEPROM.get(43, set_starttimeM);   
-byte set_startdurationH = EEPROM.get(44, set_startdurationH);   
-byte set_startdurationM = EEPROM.get(45, set_startdurationM);   
+byte set_starttimeH = EEPROM.get(42, set_starttimeH); //Sonnenaufgang Startzeit (Stunden)
+byte set_starttimeM = EEPROM.get(43, set_starttimeM); //Sonnenaufgang Startzeit (Minuten)
+byte set_startdurationH = EEPROM.get(44, set_startdurationH); //Sonnenaufgangsdauer (Stunden)
+byte set_startdurationM = EEPROM.get(45, set_startdurationM); //Sonnenaufgangsdauer (Minuten)   
 
-byte set_suntimeH = EEPROM.get(46, set_suntimeH);  
-byte set_suntimeM = EEPROM.get(47, set_suntimeM);  
-byte set_enddurationH = EEPROM.get(48, set_enddurationH);  
-byte set_enddurationM = EEPROM.get(49, set_enddurationM);  
+byte set_suntimeH = EEPROM.get(46, set_suntimeH); //Sonnenzeit (Stunden)  
+byte set_suntimeM = EEPROM.get(47, set_suntimeM); //Sonnenzeit (Minuten)  
+byte set_enddurationH = EEPROM.get(48, set_enddurationH); //Sonnenuntergang Startzeit (Stunden)  
+byte set_enddurationM = EEPROM.get(49, set_enddurationM); //Sonnenuntergang Startzeit (Minuten)  
 
-byte estEndtimeH = 0;
-byte estEndtimeM = 0;
+byte estEndtimeH = 0; // Errechnete Zeit Beginn Nacht (Stunden)
+byte estEndtimeM = 0; // Errechnete Zeit Beginn Nacht (Minuten)
 byte EndM = 0; ////Hilfvariable Stunden/Minutenüberlaufsberechnung von estEndtime
 int preEndM = 0; //Hilfvariable Stunden/Minutenüberlaufsberechnung von estEndtime
 
-int set_hystluxON = EEPROM.get(50, set_hystluxON); 
-byte set_hysttimeONM = EEPROM.get(52, set_hysttimeONM);  
-byte set_hysttimeONS = EEPROM.get(53, set_hysttimeONS);
+int set_hystluxON = EEPROM.get(50, set_hystluxON); // LUX Wert für Hystere Tageslicht EIN 
+byte set_hysttimeONM = EEPROM.get(52, set_hysttimeONM); // Verzögerungszeit Hysterese EIN (Minuten)  
+byte set_hysttimeONS = EEPROM.get(53, set_hysttimeONS); // Verzögerungszeit Hysterese EIN (Sekunden)
 
-int set_hystluxOFF = EEPROM.get(54, set_hystluxOFF); 
-byte set_hysttimeOFFM = EEPROM.get(56, set_hysttimeOFFM);  
-byte set_hysttimeOFFS = EEPROM.get(57, set_hysttimeOFFS);
+int set_hystluxOFF = EEPROM.get(54, set_hystluxOFF); // Lux Wert für Hysterese Tageslicht AUS 
+byte set_hysttimeOFFM = EEPROM.get(56, set_hysttimeOFFM); // Verzögerung Hysterese AUS (Minuten)  
+byte set_hysttimeOFFS = EEPROM.get(57, set_hysttimeOFFS); // Verzögerung Hysterese AUS (Sekunden)
 
-int set_luxSOLL = EEPROM.get(64, set_luxSOLL); 
+int set_luxSOLL = EEPROM.get(64, set_luxSOLL); // LUX Sollwert im Stall
 
 unsigned long HOUR = 0; //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
 unsigned long MIN = 0;  //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
 unsigned long SEC = 0;  //Hilfsvariable für Berechnung der aktuellen Tagesuhrzeit in Sekunden
 unsigned long timeNow = 0; //aktuelle Tagesuhrzeit in Sekunden  
 
-byte CaseLight = 1;
-int PIDSunTime = 0; //Wert von 0-1000, entsprechend der Sonnenlichtrampe (0=Dimmstufe niedrig bzw. aus, 1000 = Sollwert LUX Tag)
-double fSunPID = 0; // PIDSunTime / 1000,      Gleitkommawert zwischen 0,000 und 1,000    wird als PID Sollwert verwendet
 double fPIDsollwert = 0; // Sollwert für PID Regler (Sollwert Tageshelligkeit[lx] * fPotiSunPID)
-
 
 bool flag_luxPIDon = LOW;
 bool flag_PID_ON = LOW;
@@ -167,21 +163,21 @@ unsigned long luxPIDoff_millis= 0;
 double mapDoubleClamped(double x, double in_min, double in_max, double out_min, double out_max);
 double rampDaytime(uint32_t now_sec, uint32_t sunriseStart_sec, uint32_t sunriseEnd_sec, uint32_t sunsetStart_sec, uint32_t sunsetEnd_sec);
 
-uint32_t gNow_sec = 0;
+uint32_t gNow_sec = 0; // Aktuelle Tageszeit in Sekunden , Gleicher Wert wie TimeNow
    
 
 // *********************************************************************
 // Torsteuerung
 // *********************************************************************
-byte set_doorsOpenH = EEPROM.get(58, set_doorsOpenH);  
-byte set_doorsOpenM = EEPROM.get(59, set_doorsOpenM); 
+byte set_doorsOpenH = EEPROM.get(58, set_doorsOpenH); //Uhrzeit für Öffnung der Türen (Stunden)  
+byte set_doorsOpenM = EEPROM.get(59, set_doorsOpenM); //Uhrzeit für Öffnung der Türen (Minuten)
 
-int set_doorsCloseLux = EEPROM.get(60, set_doorsCloseLux);  
-byte set_doorsCloseM = EEPROM.get(62, set_doorsCloseM);  
-byte set_doorsCloseS = EEPROM.get(63, set_doorsCloseS);
+int set_doorsCloseLux = EEPROM.get(60, set_doorsCloseLux); //Lux Wert für schließen der Türen 
+byte set_doorsCloseM = EEPROM.get(62, set_doorsCloseM); //Verzögerungszeit bei Unterschreitung Lux Wert "Schließen" (Minuten)  
+byte set_doorsCloseS = EEPROM.get(63, set_doorsCloseS); //Verzögerungszeit bei Unterschreitung Lux Wert "Schließen" (Sekunden)
 
-unsigned long doorsOpenTimeSEC= 0;
-unsigned long doorsCloseDelaytimeMILLISEC= 0;
+unsigned long doorsOpenTimeSEC= 0; // Uhrzeit Türen Öffnen in Sekunden
+unsigned long doorsCloseDelaytimeMILLISEC= 0; // eingestellte (Millisekunden) Wartezeit für Torschließung bei Unterschreitung x-Lux
 
 byte CaseDoorsOpenClose = 1;
 bool TorAuf = HIGH;
@@ -334,12 +330,7 @@ void setup()
   pinMode(lightON_L_IN7, OUTPUT);
   pinMode(lightON_N_IN8, OUTPUT);
   digitalWrite(lightON_L_IN7, HIGH);
-  digitalWrite(lightON_N_IN8, HIGH);
-
-
-
-    
-    
+  digitalWrite(lightON_N_IN8, HIGH);   
 }
 
 
@@ -362,8 +353,7 @@ void loop()
   {       
   luxAussen = HelligkeitAussen.read(); // Read light
   }   
-
-  
+ 
   
   //Lichtsteuerung 
   
@@ -396,21 +386,22 @@ void loop()
 
   gNow_sec = (uint32_t)timeNow;
 
-  double ramp = rampDaytime(gNow_sec, starttimeSEC, startdurationEND, enddurationSTART, endtime); // floating Value 0.00-1.00
+  double ramp = rampDaytime(gNow_sec, starttimeSEC, startdurationEND, enddurationSTART, endtime); //  sunriste - day - sunset - night ,in floating Value 0.00-1.00
 
   if ((gNow_sec < starttimeSEC) || (gNow_sec > endtime)) // NACHT
   {
     fPIDsollwert = 0;
-    Serial.print("NACHT");
+    flag_sunrise = LOW;
+    flag_PID_ON = LOW;
+    flag_sunset = LOW;
   }
   else if (gNow_sec < startdurationEND) // SONNENAUFGANG
   {
     fPIDsollwert = ramp * (double)set_luxSOLL;
     flag_sunrise = HIGH;
-    Serial.print("SUNRISE");
   }
   else if (gNow_sec < enddurationSTART) // TAG
-  {Serial.print("TAG");
+  {
       if ((luxInnen/2 < (set_luxSOLL - set_hystluxON)) && flag_luxPIDon == LOW) // Hysterese Lichtregelung EIN
       {
       luxPIDon_millis = millis();
@@ -431,31 +422,37 @@ void loop()
       if (luxInnen/2 > (set_luxSOLL + set_hystluxOFF) && flag_PID_ON == HIGH && flag_lux_PIDoff == LOW) // Hysterese Lichtregelung AUS
       {
       luxPIDoff_millis = millis();
-      flag_lux_PIDoff = HIGH;      
+      flag_lux_PIDoff = HIGH;
+      Serial.println("1");      
       }
 
       if (luxInnen/2 < (set_luxSOLL + set_hystluxON) && flag_PID_ON == HIGH) // Hysterese Lichtregelung AUS
       {
       flag_lux_PIDoff = LOW;
+       Serial.println("2");    
       }
 
-      if((millis() > (hysttimeOffSEC * 1000 + luxPIDoff_millis)) && flag_lux_PIDoff == HIGH && flag_PID_ON == HIGH)  // Licht AUS
+      if((millis() > ((hysttimeOffSEC * 1000) + luxPIDoff_millis)) && flag_lux_PIDoff == HIGH && flag_PID_ON == HIGH)  // Licht AUS
       { 
-      flag_PID_ON = HIGH; 
+      flag_PID_ON = LOW; 
+       Serial.println("3");    
       }
   }
   else
   {
     fPIDsollwert = ramp * (double) set_luxSOLL; //SONNENUNTERGANG
     flag_sunset = HIGH;
-    Serial.print("SUNSET");
   }
+    
+    
+    // PID Controller Debugger. Important: For debugging on Serial Plotter, only the following Serial.prints should be active
+    /*
     Serial.print(Input);
     Serial.print(","); 
     Serial.print(Output);
     Serial.print(",");
     Serial.println(fPIDsollwert);
-   
+    */
       
   if(flag_sunrise == HIGH || flag_PID_ON == HIGH || flag_sunset == HIGH)
   {
@@ -463,8 +460,7 @@ void loop()
   digitalWrite(lightON_N_IN8, LOW);
   Input = (double) luxInnen/2; //Messeingang für Regler
   Setpoint = fPIDsollwert; //Sollwert für Regler 
-  myPID.SetTunings(set_PIDkp, set_PIDki, set_PIDkd); //Reglerfaktoren
-  //myPID.SetTunings(set_PIDkp, set_PIDki, 0.005); //Reglerfaktoren
+  myPID.SetTunings(set_PIDkp, set_PIDki, set_PIDkd); //Reglerfaktoren     test values: samplerate: 3ms, kp:0.22, ki:2.04, kd:0.00 
   myPID.SetSampleTime(set_pidSampletime); //Regler Taktrate 
   myPID.Compute(); // PID Regler ausführen
   int PotiInput = map((int)Output, 0, 255, 15, 177);
@@ -487,7 +483,6 @@ void loop()
   SEC = (unsigned long)t.sec; 
   timeNow = HOUR + MIN + SEC; //aktuelle Tagesuhrzeit in Sekunden  
   
-
   doorsOpenTimeSEC = ((unsigned long)set_doorsOpenH * 3600) + ((unsigned long)set_doorsOpenM * 60); //eingestellte Öffnungsuhrzeit in Sekunden
   doorsCloseDelaytimeMILLISEC = (((unsigned long)set_doorsCloseM * 60) + ((unsigned long)set_doorsCloseS))*1000; // eingestellte (Millisekunden) Wartezeit für Torschließung bei Unterschreitung x-Lux
  
@@ -527,7 +522,7 @@ void loop()
         flag_closeMillis = LOW;
         }
          
-        if((millis() > (doorsCloseDelaytimeMILLISEC + TorZuDelay_millis)) && flag_doorsClose == LOW && flag_closeMillis == HIGH)  // Tor schließen
+        if((millis() > (doorsCloseDelaytimeMILLISEC + TorZuDelay_millis)) && flag_doorsClose == LOW && flag_closeMillis == HIGH && (timeNow > 54000 && timeNow < 79200))  // Tor schließen
         {
         TorZu = LOW; 
         TorZu_millis = millis();
@@ -550,7 +545,6 @@ void loop()
         }      
         break;  //case '2' Ende * * * * * *        
     }
-
 
     //Relais Ansteuerung zur Verhinderung von Kontaktüberschneidungen. Das "+" schaltende Relais wird immer als erstes ausgeschalten, bzw. als letztes eingeschalten.
     

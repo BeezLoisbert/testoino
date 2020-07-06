@@ -46,8 +46,8 @@ void mFunc_doors(uint8_t param) //UHRZEIT FÜR ÖFFNUNG DER TORE
     }
 
     if(LCDML.FUNC_loop())           // ****** LOOP *********
-    {  
-    LCDML.FUNC_disableScreensaver();
+    {    
+    //LCDML.FUNC_disableScreensaver();
       
     ClickEncoder::Button b = encoder->getButton();
        
@@ -294,7 +294,7 @@ void mFunc_Hystdoors(uint8_t param) //HYSTERESE FÜR TORSCHLIESSUNG (UNTERSCHREI
 
     if(LCDML.FUNC_loop())           // ****** LOOP *********
     {  
-    LCDML.FUNC_disableScreensaver();
+    //LCDML.FUNC_disableScreensaver();
       
     ClickEncoder::Button b = encoder->getButton();
       

@@ -30,6 +30,8 @@ void your_function_name(uint8_t param)
     if(LCDML.BT_checkAny()) {
       LCDML.FUNC_goBackToMenu();
     }
+
+    LCDML.FUNC_disableScreensaver(); // Disable screensaver in this function
   }
 
   if(LCDML.FUNC_close())      // ****** STABLE END *********
@@ -145,13 +147,6 @@ void mFunc_goToRootMenu(uint8_t param) //SPRUNG ZUM HOMESCREEN
   }
 }
 
-
-
-
-
-
-  
-  
 
   int SStime = 1;
   bool flag_SStime = LOW;

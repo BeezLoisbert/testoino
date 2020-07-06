@@ -11,10 +11,10 @@ void mFunc_temp_barn(uint8_t param) //AKTUELLE TEMPERATUR IM STALL
   if(LCDML.FUNC_setup())          // ****** SETUP *********
   { 
         
-  LCDML.FUNC_disableScreensaver();
-
-    
+  //LCDML.FUNC_disableScreensaver();
+   
   LCDML.FUNC_setLoopInterval(100);  // starts a trigger event for the loop function every 100 milliseconds
+  
   lcd.setCursor(2, 1);                
   lcd.print("Temperatur Stall");        
   lcd.setCursor(6, 2);                

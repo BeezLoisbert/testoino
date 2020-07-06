@@ -476,7 +476,7 @@ ClickEncoder::Button b = encoder->getButton();     // den Button-Status abfragen
   lastValue = encValue; // neuen Wert merken  
   }
   
-  LCDML.FUNC_disableScreensaver();
+  //LCDML.FUNC_disableScreensaver();
 
 } //mFunc_timeSetup Ende * * * * * 
 
